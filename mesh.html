@@ -207,11 +207,11 @@
             let CLIENT_SIZE = 15;
             let REPEATER_SIZE = 25;
             
-            // Base ranges
-            const CLIENT_RANGE_BASE = 200;
-            const CLIENT_RANGE_VARIANCE = 30;
-            const REPEATER_RANGE_BASE = 300;
-            const REPEATER_RANGE_VARIANCE = 50;
+            // Base ranges - these will also be scaled
+            let CLIENT_RANGE_BASE = 200;
+            let CLIENT_RANGE_VARIANCE = 30;
+            let REPEATER_RANGE_BASE = 300;
+            let REPEATER_RANGE_VARIANCE = 50;
             const MESSAGE_SIZE = 7;
             
             // Initial node count - will adjust for mobile
@@ -226,7 +226,7 @@
             const AUTO_MESSAGE_BATCH = 4; // Send 4 messages per interval
 
             // Minimum distance between nodes
-            const MIN_NODE_DISTANCE = 70;
+            let MIN_NODE_DISTANCE = 70;
             
             // Max hops for messages
             const MAX_MESSAGE_HOPS = 5;
@@ -256,17 +256,21 @@
                 const baseRepeaterRadius = 20;
                 const baseClientSize = 15;
                 const baseRepeaterSize = 25;
+                const baseClientRange = 200;
+                const baseRepeaterRange = 300;
                 
                 // Scale factor based on screen size
                 let sizeFactor = 1;
                 
                 if (isMobileDevice()) {
-                    sizeFactor = 0.7; // 70% size for mobile
+                    sizeFactor = 0.5; // 50% of original
                     INITIAL_CLIENTS = Math.floor(25 * 0.6); // 60% of original
-                    INITIAL_REPEATERS = Math.floor(10 * 0.7); // 70% of original
+                    INITIAL_REPEATERS = Math.floor(10 * 0.4); // 40% of original
+                    MIN_NODE_DISTANCE = 40; // Reduced minimum distance for mobile
                 } else {
                     INITIAL_CLIENTS = 25;
                     INITIAL_REPEATERS = 10;
+                    MIN_NODE_DISTANCE = 70;
                 }
                 
                 // Update global variables
@@ -274,6 +278,12 @@
                 CLIENT_SIZE = baseClientSize * sizeFactor;
                 REPEATER_RADIUS = baseRepeaterRadius * sizeFactor;
                 REPEATER_SIZE = baseRepeaterSize * sizeFactor;
+                
+                // Also scale ranges for mobile
+                CLIENT_RANGE_BASE = baseClientRange * sizeFactor;
+                REPEATER_RANGE_BASE = baseRepeaterRange * sizeFactor;
+                CLIENT_RANGE_VARIANCE = 30 * sizeFactor;
+                REPEATER_RANGE_VARIANCE = 50 * sizeFactor;
             }
 
             // Resize canvas to match container with scaling
