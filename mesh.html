@@ -201,22 +201,24 @@
                 FLOOD: 'flood'
             };
 
-            // Node properties - increased and more randomized ranges
-            const CLIENT_RADIUS = 12;
-            const REPEATER_RADIUS = 20;
+            // Node properties - these will be updated based on device
+            let CLIENT_RADIUS = 12;
+            let REPEATER_RADIUS = 20;
+            let CLIENT_SIZE = 15;
+            let REPEATER_SIZE = 25;
+            
+            // Base ranges
             const CLIENT_RANGE_BASE = 200;
             const CLIENT_RANGE_VARIANCE = 30;
             const REPEATER_RANGE_BASE = 300;
             const REPEATER_RANGE_VARIANCE = 50;
-            const CLIENT_SIZE = 15;
-            const REPEATER_SIZE = 25;
             const MESSAGE_SIZE = 7;
             
-            // Initial node count 
-            const INITIAL_CLIENTS = 25;
-            const INITIAL_REPEATERS = 10;
+            // Initial node count - will adjust for mobile
+            let INITIAL_CLIENTS = 25;
+            let INITIAL_REPEATERS = 10;
             
-            // Animation properties - faster message speed, more frequent messages
+            // Animation properties
             const MESSAGE_SPEED = 2.5;
             const FLOOD_EXPANSION_SPEED = 1.5;
             const AUTO_MESSAGE_INTERVAL_MIN = 700; 
@@ -240,6 +242,40 @@
             // Button pause/play state
             let pauseBtn;
 
+            // Detect if the device is mobile
+            function isMobileDevice() {
+                return window.innerWidth <= 768 || 
+                    (navigator.maxTouchPoints > 0 && 
+                     /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+            }
+
+            // Update node sizes based on device
+            function updateNodeSizes() {
+                // Base node sizes
+                const baseClientRadius = 12;
+                const baseRepeaterRadius = 20;
+                const baseClientSize = 15;
+                const baseRepeaterSize = 25;
+                
+                // Scale factor based on screen size
+                let sizeFactor = 1;
+                
+                if (isMobileDevice()) {
+                    sizeFactor = 0.7; // 70% size for mobile
+                    INITIAL_CLIENTS = Math.floor(25 * 0.6); // 60% of original
+                    INITIAL_REPEATERS = Math.floor(10 * 0.7); // 70% of original
+                } else {
+                    INITIAL_CLIENTS = 25;
+                    INITIAL_REPEATERS = 10;
+                }
+                
+                // Update global variables
+                CLIENT_RADIUS = baseClientRadius * sizeFactor;
+                CLIENT_SIZE = baseClientSize * sizeFactor;
+                REPEATER_RADIUS = baseRepeaterRadius * sizeFactor;
+                REPEATER_SIZE = baseRepeaterSize * sizeFactor;
+            }
+
             // Resize canvas to match container with scaling
             function resizeCanvas() {
                 const container = canvas.parentElement;
@@ -254,32 +290,34 @@
                 if (!initialLayoutDone) {
                     baseWidth = newWidth;
                     baseHeight = newHeight;
+                    updateNodeSizes();
                     initialLayoutDone = true;
                     return;
                 }
                 
-                // Calculate scaling factor based on width
-                scaleFactor = newWidth / baseWidth;
+                // Calculate scaling factors based on width and height
+                const widthScaleFactor = newWidth / baseWidth;
+                const heightScaleFactor = newHeight / baseHeight;
                 
-                // No need to reposition nodes - we'll apply scaling during drawing
-            }
-
-            // Apply scaling transformation
-            function applyScaling() {
-                ctx.save();
-                ctx.scale(scaleFactor, scaleFactor);
-            }
-
-            // Restore original transformation
-            function restoreScaling() {
-                ctx.restore();
+                // Use the more appropriate scaling factor based on aspect ratio
+                if (newWidth / newHeight > baseWidth / baseHeight) {
+                    // Wider than original - use height as the limiting factor
+                    scaleFactor = heightScaleFactor;
+                } else {
+                    // Taller than original - use width as the limiting factor
+                    scaleFactor = widthScaleFactor;
+                }
             }
 
             // Convert screen coordinates to virtual coordinates (accounting for scale)
             function screenToVirtual(screenX, screenY) {
+                // Calculate the center offset
+                const offsetX = (canvas.width / scaleFactor - baseWidth) / 2;
+                const offsetY = (canvas.height / scaleFactor - baseHeight) / 2;
+                
                 return {
-                    x: screenX / scaleFactor,
-                    y: screenY / scaleFactor
+                    x: screenX / scaleFactor - Math.max(0, offsetX),
+                    y: screenY / scaleFactor - Math.max(0, offsetY)
                 };
             }
 
@@ -309,8 +347,6 @@
                     type,
                     x: getRandomInt(radius * 2, baseWidth - radius * 2),
                     y: getRandomInt(radius * 2, baseHeight - radius * 2),
-                    vx: 0, // All nodes are static
-                    vy: 0, // All nodes are static
                     radius,
                     range,
                     size: isRepeater ? REPEATER_SIZE : CLIENT_SIZE
@@ -783,8 +819,14 @@
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
-                // Apply scaling for all drawing operations
-                applyScaling();
+                // Calculate the center offset to position the network in the middle
+                const offsetX = (canvas.width / scaleFactor - baseWidth) / 2;
+                const offsetY = (canvas.height / scaleFactor - baseHeight) / 2;
+                
+                // Apply scaling and centering for all drawing operations
+                ctx.save();
+                ctx.scale(scaleFactor, scaleFactor);
+                ctx.translate(Math.max(0, offsetX), Math.max(0, offsetY));
                 
                 // Draw node ranges
                 drawNodeRanges();
@@ -805,7 +847,7 @@
                 drawMessages();
                 
                 // Restore original scaling
-                restoreScaling();
+                ctx.restore();
             }
             
             // Draw transmission range for nodes
@@ -1104,6 +1146,23 @@
                 window.addEventListener('scroll', handleVisibility);
                 window.addEventListener('resize', handleVisibility);
                 
+                // Add orientation change listener for mobile devices
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => {
+                        resizeCanvas();
+                        updateNodeSizes();
+                        // If nodes exist, update their sizes
+                        if (nodes.length > 0) {
+                            nodes.forEach(node => {
+                                node.size = node.type === NODE_TYPES.REPEATER ? 
+                                    REPEATER_SIZE : CLIENT_SIZE;
+                                node.radius = node.type === NODE_TYPES.REPEATER ? 
+                                    REPEATER_RADIUS : CLIENT_RADIUS;
+                            });
+                        }
+                    }, 100); // Short delay to allow orientation to complete
+                });
+                
                 // Pause/resume on visibility change
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
@@ -1139,4 +1198,3 @@
     </script>
 </body>
 </html>
-
