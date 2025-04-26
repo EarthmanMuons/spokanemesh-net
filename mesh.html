@@ -187,19 +187,24 @@
     </div>
 
     <script>
-      (function () {
-        // Canvas setup
-        const canvas = document.getElementById("mesh-canvas");
-        const ctx = canvas.getContext("2d");
+      (() => {
+        // --- State Variables ---
+        let canvas;
+        let ctx;
+        let nodes = [];
+        let messages = [];
+        let floodRings = [];
+        let processedFloodIds = new Set();
         let animationRunning = true;
         let animationFrame = null;
-
-        // Scaling properties for responsive design
+        let pauseBtn;
         let baseWidth, baseHeight;
         let scaleFactor = 1;
         let initialLayoutDone = false;
+        let lastAutoMessageTime = Date.now();
+        let nextAutoMessageTime = 1000;
 
-        // Network settings
+        // --- Constants ---
         const NODE_TYPES = {
           CLIENT: "client",
           REPEATER: "repeater",
@@ -230,8 +235,9 @@
         // Animation properties
         const MESSAGE_SPEED = 2.5;
         const FLOOD_EXPANSION_SPEED = 1.5;
-        const AUTO_MESSAGE_INTERVAL_MIN = 700;
-        const AUTO_MESSAGE_INTERVAL_MAX = 1700;
+
+        const AUTO_MESSAGE_MIN = 700;
+        const AUTO_MESSAGE_MAX = 1700;
         const AUTO_MESSAGE_BATCH = 4; // Send 4 messages per interval
 
         // Minimum distance between nodes
@@ -240,457 +246,44 @@
         // Max hops for messages
         const MAX_MESSAGE_HOPS = 5;
 
-        // Network state
-        let nodes = [];
-        let messages = [];
-        let floodRings = [];
-        let processedFloodIds = new Set();
-        let lastAutoMessageTime = Date.now();
-        let nextAutoMessageTime = getRandomInt(
-          AUTO_MESSAGE_INTERVAL_MIN,
-          AUTO_MESSAGE_INTERVAL_MAX,
-        );
+        // --- Utility Functions ---
+        const getRandomInt = (min, max) =>
+          Math.floor(Math.random() * (max - min + 1)) + min;
 
-        // Button pause/play state
-        let pauseBtn;
-
-        // Detect if the device is mobile
-        function isMobileDevice() {
-          return (
-            window.innerWidth <= 768 ||
-            (navigator.maxTouchPoints > 0 &&
-              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-                navigator.userAgent,
-              ))
-          );
-        }
-
-        // Update node sizes based on device
-        function updateNodeSizes() {
-          // Base node sizes
-          const baseClientRadius = 12;
-          const baseRepeaterRadius = 20;
-          const baseClientSize = 15;
-          const baseRepeaterSize = 25;
-          const baseClientRange = 200;
-          const baseRepeaterRange = 300;
-
-          // Scale factor based on screen size
-          let sizeFactor = 1;
-
-          if (isMobileDevice()) {
-            sizeFactor = 0.5; // 50% of original
-            INITIAL_CLIENTS = Math.floor(25 * 0.6); // 60% of original
-            INITIAL_REPEATERS = Math.floor(10 * 0.4); // 40% of original
-            MIN_NODE_DISTANCE = 40; // Reduced minimum distance for mobile
-          } else {
-            INITIAL_CLIENTS = 25;
-            INITIAL_REPEATERS = 10;
-            MIN_NODE_DISTANCE = 70;
-          }
-
-          // Update global variables
-          CLIENT_RADIUS = baseClientRadius * sizeFactor;
-          CLIENT_SIZE = baseClientSize * sizeFactor;
-          REPEATER_RADIUS = baseRepeaterRadius * sizeFactor;
-          REPEATER_SIZE = baseRepeaterSize * sizeFactor;
-
-          // Also scale ranges for mobile
-          CLIENT_RANGE_BASE = baseClientRange * sizeFactor;
-          REPEATER_RANGE_BASE = baseRepeaterRange * sizeFactor;
-          CLIENT_RANGE_VARIANCE = 30 * sizeFactor;
-          REPEATER_RANGE_VARIANCE = 50 * sizeFactor;
-        }
-
-        // Resize canvas to match container with scaling
-        function resizeCanvas() {
-          const container = canvas.parentElement;
-          const newWidth = container.offsetWidth;
-          const newHeight = container.offsetHeight;
-
-          // Set canvas size to match container
-          canvas.width = newWidth;
-          canvas.height = newHeight;
-
-          // First time setup - record initial dimensions and create layout
-          if (!initialLayoutDone) {
-            baseWidth = newWidth;
-            baseHeight = newHeight;
-            updateNodeSizes();
-            initialLayoutDone = true;
-            return;
-          }
-
-          // Calculate scaling factors based on width and height
-          const widthScaleFactor = newWidth / baseWidth;
-          const heightScaleFactor = newHeight / baseHeight;
-
-          // Use the more appropriate scaling factor based on aspect ratio
-          if (newWidth / newHeight > baseWidth / baseHeight) {
-            // Wider than original - use height as the limiting factor
-            scaleFactor = heightScaleFactor;
-          } else {
-            // Taller than original - use width as the limiting factor
-            scaleFactor = widthScaleFactor;
-          }
-        }
-
-        // Convert screen coordinates to virtual coordinates (accounting for scale)
-        function screenToVirtual(screenX, screenY) {
-          // Calculate the center offset
-          const offsetX = (canvas.width / scaleFactor - baseWidth) / 2;
-          const offsetY = (canvas.height / scaleFactor - baseHeight) / 2;
-
-          return {
-            x: screenX / scaleFactor - Math.max(0, offsetX),
-            y: screenY / scaleFactor - Math.max(0, offsetY),
-          };
-        }
-
-        // Generate a random ID
-        function generateId() {
-          return Math.random().toString(36).substr(2, 9);
-        }
-
-        // Get random int between min and max (inclusive)
-        function getRandomInt(min, max) {
-          return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
-
-        // Create a node
-        function createNode(type) {
-          const isRepeater = type === NODE_TYPES.REPEATER;
-          const radius = isRepeater ? REPEATER_RADIUS : CLIENT_RADIUS;
-
-          // More randomized transmission ranges
-          const range = isRepeater
-            ? REPEATER_RANGE_BASE +
-              getRandomInt(-REPEATER_RANGE_VARIANCE, REPEATER_RANGE_VARIANCE)
-            : CLIENT_RANGE_BASE +
-              getRandomInt(-CLIENT_RANGE_VARIANCE, CLIENT_RANGE_VARIANCE);
-
-          // Create the node with a random position within the virtual canvas
-          const node = {
-            id: generateId(),
-            type,
-            x: getRandomInt(radius * 2, baseWidth - radius * 2),
-            y: getRandomInt(radius * 2, baseHeight - radius * 2),
-            radius,
-            range,
-            size: isRepeater ? REPEATER_SIZE : CLIENT_SIZE,
-          };
-
-          return node;
-        }
-
-        // Create a flood ring (visualization for flood messages)
-        function createFloodRing(sourceNode, originalFloodId = null) {
-          const floodId = originalFloodId || generateId();
-          return {
-            id: generateId(),
-            floodId: floodId, // Unique ID for this flood event
-            sourceId: sourceNode.id,
-            x: sourceNode.x,
-            y: sourceNode.y,
-            radius: 0,
-            maxRadius: sourceNode.range,
-            expandSpeed: FLOOD_EXPANSION_SPEED,
-            opacity: 0.7,
-            affectedNodes: new Set(), // Track which nodes have been affected by this flood
-          };
-        }
-
-        // Create a point-to-point message
-        function createPointToPointMessage(sourceNode, targetNode) {
-          // Find the best route that respects the range limitations
-          const route = findRoute(sourceNode, targetNode);
-
-          // If route only has source or is incomplete, this means no valid path exists
-          if (
-            route.length <= 1 ||
-            route[route.length - 1].id !== targetNode.id
-          ) {
-            return null;
-          }
-
-          return {
-            id: generateId(),
-            type: MESSAGE_TYPES.POINT_TO_POINT,
-            sourceId: sourceNode.id,
-            targetId: targetNode.id,
-            x: sourceNode.x,
-            y: sourceNode.y,
-            size: MESSAGE_SIZE,
-            route: route,
-            currentHopIndex: 0,
-            delivered: false,
-            progress: 0, // Used for drawing a trail
-            trail: [], // Store previous positions for trail effect
-            trail_max_length: 10, // Max number of positions to store
-          };
-        }
-
-        // Find a route from source to target through repeaters if needed
-        function findRoute(sourceNode, targetNode) {
-          const route = [
-            { id: sourceNode.id, x: sourceNode.x, y: sourceNode.y },
-          ];
-
-          // Check if direct path is available
-          if (getDistance(sourceNode, targetNode) <= sourceNode.range) {
-            route.push({ id: targetNode.id, x: targetNode.x, y: targetNode.y });
-            return route;
-          }
-
-          // If not direct, try multi-hop routing through repeaters
-          const foundPath = findPathThroughRepeaters(
-            route,
-            sourceNode,
-            targetNode,
-            0,
-          );
-
-          if (!foundPath) {
-            // No valid path found, return the incomplete route
-            return route;
-          }
-
-          return route;
-        }
-
-        // Recursive function to find a path through repeaters
-        function findPathThroughRepeaters(
-          route,
-          currentNode,
-          targetNode,
-          hopCount,
-        ) {
-          // Base case: too many hops
-          if (hopCount >= MAX_MESSAGE_HOPS) {
-            return false;
-          }
-
-          // Check if current node can reach target directly
-          if (getDistance(currentNode, targetNode) <= currentNode.range) {
-            route.push({ id: targetNode.id, x: targetNode.x, y: targetNode.y });
-            return true;
-          }
-
-          // Get all repeaters in range of current node
-          const repeaters = nodes.filter(
-            (node) =>
-              node.type === NODE_TYPES.REPEATER &&
-              node.id !== currentNode.id &&
-              getDistance(currentNode, node) <= currentNode.range &&
-              !route.some((hop) => hop.id === node.id), // Avoid loops
-          );
-
-          // Sort repeaters by distance to target
-          repeaters.sort(
-            (a, b) => getDistance(a, targetNode) - getDistance(b, targetNode),
-          );
-
-          // Try each repeater
-          for (const repeater of repeaters) {
-            route.push({ id: repeater.id, x: repeater.x, y: repeater.y });
-
-            if (
-              findPathThroughRepeaters(
-                route,
-                repeater,
-                targetNode,
-                hopCount + 1,
-              )
-            ) {
-              return true;
-            }
-
-            // If this path didn't work, backtrack
-            route.pop();
-          }
-
-          return false;
-        }
-
-        // Calculate distance between two nodes (virtual coordinates, unaffected by scaling)
-        function getDistance(node1, node2) {
-          const dx = node1.x - node2.x;
-          const dy = node1.y - node2.y;
+        const getDistance = (a, b) => {
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
           return Math.sqrt(dx * dx + dy * dy);
-        }
+        };
 
-        // Check if a position is too close to existing nodes
-        function isTooCloseToOtherNodes(x, y, excludeId = null) {
-          return nodes.some(
-            (node) =>
-              (excludeId === null || node.id !== excludeId) &&
-              getDistance({ x, y }, node) < MIN_NODE_DISTANCE,
-          );
-        }
+        // --- Core Simulation Functions ---
+        const addNode = (type) => {
+          const node = createNode(type);
+          let validPlacement = false;
+          let attempts = 0;
 
-        // Initialize the network with better node placement for connectivity
-        function initNetwork() {
-          resizeCanvas();
-
-          // Reset state
-          nodes = [];
-          messages = [];
-          floodRings = [];
-          processedFloodIds = new Set();
-
-          // Place repeaters first with good distribution
-          placeRepeaters();
-
-          // Then place clients with good distribution
-          placeClients();
-
-          // Send initial messages to demonstrate routing
-          setTimeout(() => {
-            // Send a batch of initial messages
-            for (let i = 0; i < 5; i++) {
-              setTimeout(() => {
-                if (i % 20 === 0) {
-                  // 5% chance for flood (1 out of 20)
-                  sendFlood();
-                } else {
-                  sendMessage();
-                }
-              }, i * 300);
-            }
-          }, 500);
-        }
-
-        // Place repeaters with good distribution
-        function placeRepeaters() {
-          const repeaterCount = INITIAL_REPEATERS;
-
-          // Create a grid-like distribution for repeaters
-          const gridCols = Math.ceil(Math.sqrt(repeaterCount));
-          const gridRows = Math.ceil(repeaterCount / gridCols);
-
-          const cellWidth = baseWidth / gridCols;
-          const cellHeight = baseHeight / gridRows;
-
-          let placedRepeaters = 0;
-          for (
-            let row = 0;
-            row < gridRows && placedRepeaters < repeaterCount;
-            row++
-          ) {
-            for (
-              let col = 0;
-              col < gridCols && placedRepeaters < repeaterCount;
-              col++
-            ) {
-              const repeater = createNode(NODE_TYPES.REPEATER);
-
-              // Find a good position in the cell
-              let attempts = 0;
-              let validPlacement = false;
-
-              while (!validPlacement && attempts < 10) {
-                repeater.x =
-                  col * cellWidth + cellWidth * (0.25 + Math.random() * 0.5);
-                repeater.y =
-                  row * cellHeight + cellHeight * (0.25 + Math.random() * 0.5);
-
-                validPlacement = !isTooCloseToOtherNodes(
-                  repeater.x,
-                  repeater.y,
-                );
-                attempts++;
-              }
-
-              nodes.push(repeater);
-              placedRepeaters++;
-            }
-          }
-        }
-
-        // Place clients with good distribution
-        function placeClients() {
-          const clientCount = INITIAL_CLIENTS;
-
-          for (let i = 0; i < clientCount; i++) {
-            let validPlacement = false;
-            let attempts = 0;
-            let client = createNode(NODE_TYPES.CLIENT);
-
-            // Try to place the client away from other nodes
-            while (!validPlacement && attempts < 30) {
-              client.x = getRandomInt(
-                client.radius * 2,
-                baseWidth - client.radius * 2,
-              );
-              client.y = getRandomInt(
-                client.radius * 2,
-                baseHeight - client.radius * 2,
-              );
-
-              validPlacement = !isTooCloseToOtherNodes(client.x, client.y);
-              attempts++;
-            }
-
-            nodes.push(client);
+          while (!validPlacement && attempts < 30) {
+            node.x = getRandomInt(node.radius * 2, baseWidth - node.radius * 2);
+            node.y = getRandomInt(
+              node.radius * 2,
+              baseHeight - node.radius * 2,
+            );
+            validPlacement = !isTooCloseToOtherNodes(node.x, node.y);
+            attempts++;
           }
 
-          // Make sure every client can reach at least one repeater
-          ensureClientConnectivity();
-        }
+          nodes.push(node);
 
-        // Ensure every client can communicate with at least one repeater
-        function ensureClientConnectivity() {
-          const repeaters = nodes.filter(
-            (node) => node.type === NODE_TYPES.REPEATER,
-          );
+          if (type === NODE_TYPES.CLIENT) {
+            setTimeout(() => sendMessage(node.id), 300);
+          }
+        };
 
-          nodes.forEach((node) => {
-            if (node.type === NODE_TYPES.CLIENT) {
-              // Check if this client can reach any repeater
-              const canReachRepeater = repeaters.some(
-                (repeater) =>
-                  getDistance(node, repeater) <=
-                  Math.max(node.range, repeater.range),
-              );
+        const addClient = () => addNode(NODE_TYPES.CLIENT);
 
-              if (!canReachRepeater && repeaters.length > 0) {
-                // Find the closest repeater
-                repeaters.sort(
-                  (a, b) => getDistance(node, a) - getDistance(node, b),
-                );
-                const closest = repeaters[0];
+        const addRepeater = () => addNode(NODE_TYPES.REPEATER);
 
-                // Calculate a position that's within range but not too close
-                const distance = getDistance(node, closest);
-                const angle = Math.atan2(
-                  node.y - closest.y,
-                  node.x - closest.x,
-                );
-                const targetDistance =
-                  Math.min(closest.range, node.range) * 0.9; // 90% of the smaller range
-
-                let newX = closest.x + Math.cos(angle) * targetDistance;
-                let newY = closest.y + Math.sin(angle) * targetDistance;
-
-                // Make sure it's within canvas bounds
-                newX = Math.max(
-                  node.radius * 2,
-                  Math.min(newX, baseWidth - node.radius * 2),
-                );
-                newY = Math.max(
-                  node.radius * 2,
-                  Math.min(newY, baseHeight - node.radius * 2),
-                );
-
-                node.x = newX;
-                node.y = newY;
-              }
-            }
-          });
-        }
-
-        // Send a point-to-point message
-        function sendMessage(sourceNodeId = null) {
+        const sendMessage = (sourceNodeId = null) => {
           // Choose random client if none specified
           if (!sourceNodeId) {
             const clientNodes = nodes.filter(
@@ -768,10 +361,10 @@
           if (message) {
             messages.push(message);
           }
-        }
+        };
 
         // Send a flood message
-        function sendFlood(sourceNodeId = null) {
+        const sendFlood = (sourceNodeId = null) => {
           // Choose random client if none specified
           if (!sourceNodeId) {
             const clientNodes = nodes.filter(
@@ -791,10 +384,524 @@
           processedFloodIds.add(floodId + "-" + sourceNode.id); // Mark this node as having processed this flood
 
           floodRings.push(ring);
-        }
+        };
 
-        // Update point-to-point messages
-        function updatePointToPointMessages() {
+        // --- Drawing Functions ---
+        const drawNodes = () => {
+          nodes.forEach((node) => {
+            const color =
+              node.type === NODE_TYPES.CLIENT
+                ? getComputedStyle(document.documentElement).getPropertyValue(
+                    "--client-color",
+                  )
+                : getComputedStyle(document.documentElement).getPropertyValue(
+                    "--repeater-color",
+                  );
+
+            drawHexagon(node.x, node.y, node.size, color);
+          });
+        };
+
+        const drawMessages = () => {
+          messages.forEach((message) => {
+            if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) return;
+
+            const color = getComputedStyle(
+              document.documentElement,
+            ).getPropertyValue("--message-color");
+
+            if (message.delivered) {
+              // Draw delivery effect (growing pulse)
+              ctx.beginPath();
+              ctx.arc(
+                message.x,
+                message.y,
+                message.size + message.progress * 15,
+                0,
+                Math.PI * 2,
+              );
+              ctx.fillStyle = `rgba(217, 119, 98, ${1 - message.progress})`;
+              ctx.fill();
+            }
+
+            // Draw message (circle)
+            ctx.beginPath();
+            ctx.arc(message.x, message.y, message.size, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Add a white border to make messages more visible
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          });
+        };
+
+        const drawHexagon = (x, y, size, fillColor) => {
+          const numberOfSides = 6;
+          const a = (Math.PI * 2) / numberOfSides;
+
+          ctx.beginPath();
+          ctx.moveTo(
+            x + size * Math.cos(Math.PI / 2),
+            y + size * Math.sin(Math.PI / 2),
+          );
+
+          for (let i = 1; i <= numberOfSides; i++) {
+            const angle = Math.PI / 2 + a * i;
+            ctx.lineTo(x + size * Math.cos(angle), y + size * Math.sin(angle));
+          }
+
+          ctx.closePath();
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+
+          // Slightly darker border
+          ctx.strokeStyle = adjustColorBrightness(fillColor, -20);
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        };
+
+        // --- UI / Event Functions ---
+        const toggleAnimationOnVisibility = () => {
+          const visible = isInViewport(canvas);
+          if (visible && !animationRunning) {
+            animationRunning = true;
+            animate();
+            updatePauseButton();
+          } else if (!visible && animationRunning) {
+            animationRunning = false;
+            cancelAnimationFrame(animationFrame);
+          }
+        };
+
+        const updatePauseButton = () => {
+          if (!pauseBtn) pauseBtn = document.getElementById("toggle-pause");
+          const pauseIcon = pauseBtn.querySelector(".icon");
+          pauseIcon.textContent = animationRunning ? "❚❚" : "▶";
+          const buttonText = pauseBtn.textContent;
+          pauseBtn.textContent = animationRunning ? "Pause" : "Resume";
+          pauseBtn.prepend(pauseIcon);
+        };
+
+        const isInViewport = (element) => {
+          const rect = element.getBoundingClientRect();
+          return (
+            rect.top <=
+              (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.bottom >= 0
+          );
+        };
+
+        // TODO: convert remaining original functionality from below
+        //const createNode = (type) => {
+        //  const size = type === NODE_TYPES.REPEATER ? 20 : 12;
+        //  return {
+        //    id: crypto.randomUUID(),
+        //    type,
+        //    x: 0,
+        //    y: 0,
+        //    radius: size,
+        //    size,
+        //    range: type === NODE_TYPES.REPEATER ? 300 : 200,
+        //  };
+        //};
+
+        // Create a node
+        const createNode = (type) => {
+          const isRepeater = type === NODE_TYPES.REPEATER;
+          const radius = isRepeater ? REPEATER_RADIUS : CLIENT_RADIUS;
+
+          // More randomized transmission ranges
+          const range = isRepeater
+            ? REPEATER_RANGE_BASE +
+              getRandomInt(-REPEATER_RANGE_VARIANCE, REPEATER_RANGE_VARIANCE)
+            : CLIENT_RANGE_BASE +
+              getRandomInt(-CLIENT_RANGE_VARIANCE, CLIENT_RANGE_VARIANCE);
+
+          // Create the node with a random position within the virtual canvas
+          const node = {
+            id: generateId(),
+            type,
+            x: getRandomInt(radius * 2, baseWidth - radius * 2),
+            y: getRandomInt(radius * 2, baseHeight - radius * 2),
+            radius,
+            range,
+            size: isRepeater ? REPEATER_SIZE : CLIENT_SIZE,
+          };
+
+          return node;
+        };
+
+        // TODO: convert remaining original functionality from below
+        //const isTooCloseToOtherNodes = (x, y) => {
+        //  return nodes.some(node => getDistance({x, y}, node) < 40);
+        //};
+
+        // Check if a position is too close to existing nodes
+        const isTooCloseToOtherNodes = (x, y, excludeId = null) => {
+          return nodes.some(
+            (node) =>
+              (excludeId === null || node.id !== excludeId) &&
+              getDistance({ x, y }, node) < MIN_NODE_DISTANCE,
+          );
+        };
+
+        // Detect if the device is mobile
+        const isMobileDevice = () => {
+          return (
+            window.innerWidth <= 768 ||
+            (navigator.maxTouchPoints > 0 &&
+              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                navigator.userAgent,
+              ))
+          );
+        };
+
+        // Update node sizes based on device
+        const updateNodeSizes = () => {
+          // Base node sizes
+          const baseClientRadius = 12;
+          const baseRepeaterRadius = 20;
+          const baseClientSize = 15;
+          const baseRepeaterSize = 25;
+          const baseClientRange = 200;
+          const baseRepeaterRange = 300;
+
+          // Scale factor based on screen size
+          let sizeFactor = 1;
+
+          if (isMobileDevice()) {
+            sizeFactor = 0.5; // 50% of original
+            INITIAL_CLIENTS = Math.floor(25 * 0.6); // 60% of original
+            INITIAL_REPEATERS = Math.floor(10 * 0.4); // 40% of original
+            MIN_NODE_DISTANCE = 40; // Reduced minimum distance for mobile
+          } else {
+            INITIAL_CLIENTS = 25;
+            INITIAL_REPEATERS = 10;
+            MIN_NODE_DISTANCE = 70;
+          }
+
+          // Update global variables
+          CLIENT_RADIUS = baseClientRadius * sizeFactor;
+          CLIENT_SIZE = baseClientSize * sizeFactor;
+          REPEATER_RADIUS = baseRepeaterRadius * sizeFactor;
+          REPEATER_SIZE = baseRepeaterSize * sizeFactor;
+
+          // Also scale ranges for mobile
+          CLIENT_RANGE_BASE = baseClientRange * sizeFactor;
+          REPEATER_RANGE_BASE = baseRepeaterRange * sizeFactor;
+          CLIENT_RANGE_VARIANCE = 30 * sizeFactor;
+          REPEATER_RANGE_VARIANCE = 50 * sizeFactor;
+        };
+
+        // Convert screen coordinates to virtual coordinates (accounting for scale)
+        const screenToVirtual = (screenX, screenY) => {
+          // Calculate the center offset
+          const offsetX = (canvas.width / scaleFactor - baseWidth) / 2;
+          const offsetY = (canvas.height / scaleFactor - baseHeight) / 2;
+
+          return {
+            x: screenX / scaleFactor - Math.max(0, offsetX),
+            y: screenY / scaleFactor - Math.max(0, offsetY),
+          };
+        };
+
+        // Generate a random ID
+        const generateId = () => {
+          return Math.random().toString(36).substr(2, 9);
+        };
+
+        // Create a flood ring (visualization for flood messages)
+        const createFloodRing = (sourceNode, originalFloodId = null) => {
+          const floodId = originalFloodId || generateId();
+          return {
+            id: generateId(),
+            floodId: floodId, // Unique ID for this flood event
+            sourceId: sourceNode.id,
+            x: sourceNode.x,
+            y: sourceNode.y,
+            radius: 0,
+            maxRadius: sourceNode.range,
+            expandSpeed: FLOOD_EXPANSION_SPEED,
+            opacity: 0.7,
+            affectedNodes: new Set(), // Track which nodes have been affected by this flood
+          };
+        };
+
+        // Create a point-to-point message
+        const createPointToPointMessage = (sourceNode, targetNode) => {
+          // Find the best route that respects the range limitations
+          const route = findRoute(sourceNode, targetNode);
+
+          // If route only has source or is incomplete, this means no valid path exists
+          if (
+            route.length <= 1 ||
+            route[route.length - 1].id !== targetNode.id
+          ) {
+            return null;
+          }
+
+          return {
+            id: generateId(),
+            type: MESSAGE_TYPES.POINT_TO_POINT,
+            sourceId: sourceNode.id,
+            targetId: targetNode.id,
+            x: sourceNode.x,
+            y: sourceNode.y,
+            size: MESSAGE_SIZE,
+            route: route,
+            currentHopIndex: 0,
+            delivered: false,
+            progress: 0, // Used for drawing a trail
+            trail: [], // Store previous positions for trail effect
+            trail_max_length: 10, // Max number of positions to store
+          };
+        };
+
+        // Find a route from source to target through repeaters if needed
+        const findRoute = (sourceNode, targetNode) => {
+          const route = [
+            { id: sourceNode.id, x: sourceNode.x, y: sourceNode.y },
+          ];
+
+          // Check if direct path is available
+          if (getDistance(sourceNode, targetNode) <= sourceNode.range) {
+            route.push({ id: targetNode.id, x: targetNode.x, y: targetNode.y });
+            return route;
+          }
+
+          // If not direct, try multi-hop routing through repeaters
+          const foundPath = findPathThroughRepeaters(
+            route,
+            sourceNode,
+            targetNode,
+            0,
+          );
+
+          if (!foundPath) {
+            // No valid path found, return the incomplete route
+            return route;
+          }
+
+          return route;
+        };
+
+        const findPathThroughRepeaters = (
+          route,
+          currentNode,
+          targetNode,
+          hopCount,
+        ) => {
+          // Base case: too many hops
+          if (hopCount >= MAX_MESSAGE_HOPS) {
+            return false;
+          }
+
+          // Check if current node can reach target directly
+          if (getDistance(currentNode, targetNode) <= currentNode.range) {
+            route.push({ id: targetNode.id, x: targetNode.x, y: targetNode.y });
+            return true;
+          }
+
+          // Get all repeaters in range of current node
+          const repeaters = nodes.filter(
+            (node) =>
+              node.type === NODE_TYPES.REPEATER &&
+              node.id !== currentNode.id &&
+              getDistance(currentNode, node) <= currentNode.range &&
+              !route.some((hop) => hop.id === node.id), // Avoid loops
+          );
+
+          // Sort repeaters by distance to target
+          repeaters.sort(
+            (a, b) => getDistance(a, targetNode) - getDistance(b, targetNode),
+          );
+
+          // Try each repeater
+          for (const repeater of repeaters) {
+            route.push({ id: repeater.id, x: repeater.x, y: repeater.y });
+
+            if (
+              findPathThroughRepeaters(
+                route,
+                repeater,
+                targetNode,
+                hopCount + 1,
+              )
+            ) {
+              return true;
+            }
+
+            // If this path didn't work, backtrack
+            route.pop();
+          }
+
+          return false;
+        };
+
+        // Initialize the network with better node placement for connectivity
+        const initNetwork = () => {
+          resizeCanvas();
+
+          // Reset state
+          nodes = [];
+          messages = [];
+          floodRings = [];
+          processedFloodIds = new Set();
+
+          // Place repeaters first with good distribution
+          placeRepeaters();
+
+          // Then place clients with good distribution
+          placeClients();
+
+          // Send initial messages to demonstrate routing
+          setTimeout(() => {
+            // Send a batch of initial messages
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                if (i % 20 === 0) {
+                  // 5% chance for flood (1 out of 20)
+                  sendFlood();
+                } else {
+                  sendMessage();
+                }
+              }, i * 300);
+            }
+          }, 500);
+        };
+
+        // Place repeaters with good distribution
+        const placeRepeaters = () => {
+          const repeaterCount = INITIAL_REPEATERS;
+
+          // Create a grid-like distribution for repeaters
+          const gridCols = Math.ceil(Math.sqrt(repeaterCount));
+          const gridRows = Math.ceil(repeaterCount / gridCols);
+
+          const cellWidth = baseWidth / gridCols;
+          const cellHeight = baseHeight / gridRows;
+
+          let placedRepeaters = 0;
+          for (
+            let row = 0;
+            row < gridRows && placedRepeaters < repeaterCount;
+            row++
+          ) {
+            for (
+              let col = 0;
+              col < gridCols && placedRepeaters < repeaterCount;
+              col++
+            ) {
+              const repeater = createNode(NODE_TYPES.REPEATER);
+
+              // Find a good position in the cell
+              let attempts = 0;
+              let validPlacement = false;
+
+              while (!validPlacement && attempts < 10) {
+                repeater.x =
+                  col * cellWidth + cellWidth * (0.25 + Math.random() * 0.5);
+                repeater.y =
+                  row * cellHeight + cellHeight * (0.25 + Math.random() * 0.5);
+
+                validPlacement = !isTooCloseToOtherNodes(
+                  repeater.x,
+                  repeater.y,
+                );
+                attempts++;
+              }
+
+              nodes.push(repeater);
+              placedRepeaters++;
+            }
+          }
+        };
+
+        // Place clients with good distribution
+        const placeClients = () => {
+          const clientCount = INITIAL_CLIENTS;
+
+          for (let i = 0; i < clientCount; i++) {
+            let validPlacement = false;
+            let attempts = 0;
+            let client = createNode(NODE_TYPES.CLIENT);
+
+            // Try to place the client away from other nodes
+            while (!validPlacement && attempts < 30) {
+              client.x = getRandomInt(
+                client.radius * 2,
+                baseWidth - client.radius * 2,
+              );
+              client.y = getRandomInt(
+                client.radius * 2,
+                baseHeight - client.radius * 2,
+              );
+
+              validPlacement = !isTooCloseToOtherNodes(client.x, client.y);
+              attempts++;
+            }
+
+            nodes.push(client);
+          }
+
+          // Make sure every client can reach at least one repeater
+          ensureClientConnectivity();
+        };
+
+        // Ensure every client can communicate with at least one repeater
+        const ensureClientConnectivity = () => {
+          const repeaters = nodes.filter(
+            (node) => node.type === NODE_TYPES.REPEATER,
+          );
+
+          nodes.forEach((node) => {
+            if (node.type === NODE_TYPES.CLIENT) {
+              // Check if this client can reach any repeater
+              const canReachRepeater = repeaters.some(
+                (repeater) =>
+                  getDistance(node, repeater) <=
+                  Math.max(node.range, repeater.range),
+              );
+
+              if (!canReachRepeater && repeaters.length > 0) {
+                // Find the closest repeater
+                repeaters.sort(
+                  (a, b) => getDistance(node, a) - getDistance(node, b),
+                );
+                const closest = repeaters[0];
+
+                // Calculate a position that's within range but not too close
+                const distance = getDistance(node, closest);
+                const angle = Math.atan2(
+                  node.y - closest.y,
+                  node.x - closest.x,
+                );
+                const targetDistance =
+                  Math.min(closest.range, node.range) * 0.9; // 90% of the smaller range
+
+                let newX = closest.x + Math.cos(angle) * targetDistance;
+                let newY = closest.y + Math.sin(angle) * targetDistance;
+
+                // Make sure it's within canvas bounds
+                newX = Math.max(
+                  node.radius * 2,
+                  Math.min(newX, baseWidth - node.radius * 2),
+                );
+                newY = Math.max(
+                  node.radius * 2,
+                  Math.min(newY, baseHeight - node.radius * 2),
+                );
+
+                node.x = newX;
+                node.y = newY;
+              }
+            }
+          });
+        };
+
+        const updateMessages = () => {
           for (let i = messages.length - 1; i >= 0; i--) {
             const message = messages[i];
             if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) continue;
@@ -850,10 +957,9 @@
               message.y += (dy / distanceToNext) * MESSAGE_SPEED;
             }
           }
-        }
+        };
 
-        // Update flood rings
-        function updateFloodRings() {
+        const updateFloods = () => {
           for (let i = floodRings.length - 1; i >= 0; i--) {
             const ring = floodRings[i];
 
@@ -890,41 +996,34 @@
               floodRings.splice(i, 1);
             }
           }
-        }
+        };
 
-        // Check for auto-generated messages
-        function checkAutoMessages() {
-          const currentTime = Date.now();
-          if (currentTime - lastAutoMessageTime > nextAutoMessageTime) {
-            // Generate batch of messages
+        const checkAutoMessages = () => {
+          const now = Date.now();
+          if (now - lastAutoMessageTime > nextAutoMessageTime) {
+            const clients = nodes.filter((n) => n.type === NODE_TYPES.CLIENT);
+            if (!clients.length) return;
+
             for (let i = 0; i < AUTO_MESSAGE_BATCH; i++) {
               setTimeout(() => {
-                const clientNodes = nodes.filter(
-                  (node) => node.type === NODE_TYPES.CLIENT,
-                );
-                if (clientNodes.length > 0) {
-                  const sourceNode =
-                    clientNodes[Math.floor(Math.random() * clientNodes.length)];
-                  // 5% chance for flood, 95% for point-to-point
-                  if (Math.random() < 0.05) {
-                    sendFlood(sourceNode.id);
-                  } else {
-                    sendMessage(sourceNode.id);
-                  }
-                }
+                const source =
+                  clients[Math.floor(Math.random() * clients.length)];
+                Math.random() < 0.05
+                  ? sendFlood(source.id)
+                  : sendMessage(source.id);
               }, i * 120);
             }
 
-            lastAutoMessageTime = currentTime;
+            lastAutoMessageTime = now;
             nextAutoMessageTime = getRandomInt(
-              AUTO_MESSAGE_INTERVAL_MIN,
-              AUTO_MESSAGE_INTERVAL_MAX,
+              AUTO_MESSAGE_MIN,
+              AUTO_MESSAGE_MAX,
             );
           }
-        }
+        };
 
         // Draw all elements on canvas
-        function draw() {
+        const draw = () => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           // Calculate the center offset to position the network in the middle
@@ -956,10 +1055,10 @@
 
           // Restore original scaling
           ctx.restore();
-        }
+        };
 
         // Draw transmission range for nodes
-        function drawNodeRanges() {
+        const drawNodeRanges = () => {
           nodes.forEach((node) => {
             ctx.beginPath();
             ctx.arc(node.x, node.y, node.range, 0, Math.PI * 2);
@@ -974,10 +1073,10 @@
             ctx.lineWidth = 1;
             ctx.stroke();
           });
-        }
+        };
 
         // Draw flood rings
-        function drawFloodRings() {
+        const drawFloodRings = () => {
           floodRings.forEach((ring) => {
             ctx.beginPath();
             ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
@@ -985,10 +1084,10 @@
             ctx.lineWidth = 2;
             ctx.stroke();
           });
-        }
+        };
 
         // Draw message routes (faint lines showing the path)
-        function drawMessageRoutes() {
+        const drawMessageRoutes = () => {
           messages.forEach((message) => {
             if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) return;
             if (message.delivered) return; // Don't show routes for delivered messages
@@ -1009,10 +1108,10 @@
             ctx.stroke();
             ctx.setLineDash([]); // Reset line dash
           });
-        }
+        };
 
         // Draw trails behind messages
-        function drawMessageTrails() {
+        const drawMessageTrails = () => {
           messages.forEach((message) => {
             if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) return;
             if (!message.trail || message.trail.length < 2) return;
@@ -1038,90 +1137,10 @@
             ctx.lineWidth = 3;
             ctx.stroke();
           });
-        }
-
-        // Draw network nodes
-        function drawNodes() {
-          nodes.forEach((node) => {
-            // Draw the node (hexagon)
-            const color =
-              node.type === NODE_TYPES.CLIENT
-                ? getComputedStyle(document.documentElement).getPropertyValue(
-                    "--client-color",
-                  )
-                : getComputedStyle(document.documentElement).getPropertyValue(
-                    "--repeater-color",
-                  );
-
-            // Draw hexagon
-            drawHexagon(node.x, node.y, node.size, color);
-          });
-        }
-
-        // Draw messages (point-to-point)
-        function drawMessages() {
-          messages.forEach((message) => {
-            if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) return;
-
-            const color = getComputedStyle(
-              document.documentElement,
-            ).getPropertyValue("--message-color");
-
-            if (message.delivered) {
-              // Draw delivery effect (growing pulse)
-              ctx.beginPath();
-              ctx.arc(
-                message.x,
-                message.y,
-                message.size + message.progress * 15,
-                0,
-                Math.PI * 2,
-              );
-              ctx.fillStyle = `rgba(217, 119, 98, ${1 - message.progress})`;
-              ctx.fill();
-            }
-
-            // Draw message (circle)
-            ctx.beginPath();
-            ctx.arc(message.x, message.y, message.size, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-
-            // Add a white border to make messages more visible
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          });
-        }
-
-        // Draw a hexagon
-        function drawHexagon(x, y, size, fillColor) {
-          const numberOfSides = 6;
-          const a = (Math.PI * 2) / numberOfSides;
-
-          ctx.beginPath();
-          ctx.moveTo(
-            x + size * Math.cos(Math.PI / 2),
-            y + size * Math.sin(Math.PI / 2),
-          );
-
-          for (let i = 1; i <= numberOfSides; i++) {
-            const angle = Math.PI / 2 + a * i;
-            ctx.lineTo(x + size * Math.cos(angle), y + size * Math.sin(angle));
-          }
-
-          ctx.closePath();
-          ctx.fillStyle = fillColor;
-          ctx.fill();
-
-          // Slightly darker border
-          ctx.strokeStyle = adjustColorBrightness(fillColor, -20);
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
+        };
 
         // Adjust color brightness
-        function adjustColorBrightness(hex, percent) {
+        const adjustColorBrightness = (hex, percent) => {
           // Parse hex color to RGB
           let r = parseInt(hex.substring(1, 3), 16);
           let g = parseInt(hex.substring(3, 5), 16);
@@ -1134,113 +1153,73 @@
 
           // Convert back to hex
           return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-        }
+        };
 
         // Animation loop
-        function animate() {
-          if (!animationRunning) {
+        const animate = () => {
+          if (!animationRunning) return;
+          updateMessages();
+          updateFloods();
+          checkAutoMessages();
+          draw();
+          animationFrame = requestAnimationFrame(animate);
+        };
+
+        // Resize canvas to match container with scaling
+        const resizeCanvas = () => {
+          const container = canvas.parentElement;
+          const newWidth = container.offsetWidth;
+          const newHeight = container.offsetHeight;
+
+          // Set canvas size to match container
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+
+          // First time setup - record initial dimensions and create layout
+          if (!initialLayoutDone) {
+            baseWidth = newWidth;
+            baseHeight = newHeight;
+            updateNodeSizes();
+            initialLayoutDone = true;
             return;
           }
 
-          updatePointToPointMessages();
-          updateFloodRings();
-          checkAutoMessages();
+          // Calculate scaling factors based on width and height
+          const widthScaleFactor = newWidth / baseWidth;
+          const heightScaleFactor = newHeight / baseHeight;
 
-          draw();
-
-          animationFrame = requestAnimationFrame(animate);
-        }
-
-        function addNode(type) {
-          const node = createNode(type);
-          let validPlacement = false;
-          let attempts = 0;
-
-          while (!validPlacement && attempts < 30) {
-            node.x = getRandomInt(node.radius * 2, baseWidth - node.radius * 2);
-            node.y = getRandomInt(
-              node.radius * 2,
-              baseHeight - node.radius * 2,
-            );
-
-            validPlacement = !isTooCloseToOtherNodes(node.x, node.y);
-            attempts++;
+          // Use the more appropriate scaling factor based on aspect ratio
+          if (newWidth / newHeight > baseWidth / baseHeight) {
+            // Wider than original - use height as the limiting factor
+            scaleFactor = heightScaleFactor;
+          } else {
+            // Taller than original - use width as the limiting factor
+            scaleFactor = widthScaleFactor;
           }
+        };
 
-          nodes.push(node);
+        const togglePause = () => {
+          animationRunning = !animationRunning;
+          updatePauseButton();
+          if (animationRunning) animate();
+        };
 
-          if (type === NODE_TYPES.CLIENT) {
-            setTimeout(() => sendMessage(node.id), 300);
-          }
-        }
+        // TODO: convert remaining original functionality from below
+        //const resetNetwork = () => {
+        //  nodes = [];
+        //  messages = [];
+        //  floodRings = [];
+        //  initNetwork();
+        //};
 
-        function addClient() {
-          addNode(NODE_TYPES.CLIENT);
-        }
-
-        function addRepeater() {
-          addNode(NODE_TYPES.REPEATER);
-        }
-
-        function resetNetwork() {
+        const resetNetwork = () => {
           cancelAnimationFrame(animationFrame);
           initNetwork();
           animate();
           updatePauseButton();
-        }
+        };
 
-        // Toggle animation pause
-        function togglePause() {
-          animationRunning = !animationRunning;
-          updatePauseButton();
-
-          if (animationRunning) {
-            animate();
-          }
-        }
-
-        // Update the pause button
-        function updatePauseButton() {
-          if (!pauseBtn) {
-            pauseBtn = document.getElementById("toggle-pause");
-          }
-
-          const pauseIcon = pauseBtn.querySelector(".icon");
-          pauseIcon.textContent = animationRunning ? "❚❚" : "▶";
-
-          const buttonText = pauseBtn.textContent;
-          pauseBtn.textContent = animationRunning ? "Pause" : "Resume";
-          pauseBtn.prepend(pauseIcon);
-        }
-
-        // Check if element is visible in viewport
-        function isInViewport(element) {
-          const rect = element.getBoundingClientRect();
-          return (
-            rect.top <=
-              (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.bottom >= 0
-          );
-        }
-
-        // Handle visibility changes
-        function toggleAnimationOnVisiblity() {
-          if (isInViewport(canvas)) {
-            if (!animationRunning) {
-              animationRunning = true;
-              animate();
-              updatePauseButton();
-            }
-          } else {
-            if (animationRunning) {
-              animationRunning = false;
-              cancelAnimationFrame(animationFrame);
-            }
-          }
-        }
-
-        // Set up event listeners
-        function setupEventListeners() {
+        const setupEventListeners = () => {
           window.addEventListener("resize", resizeCanvas);
 
           pauseBtn = document.getElementById("toggle-pause");
@@ -1269,8 +1248,8 @@
             .addEventListener("click", resetNetwork);
 
           // Pause animation when not in viewport
-          window.addEventListener("scroll", toggleAnimationOnVisiblity);
-          window.addEventListener("resize", toggleAnimationOnVisiblity);
+          window.addEventListener("scroll", toggleAnimationOnVisibility);
+          window.addEventListener("resize", toggleAnimationOnVisibility);
 
           // Add orientation change listener for mobile devices
           window.addEventListener("orientationchange", () => {
@@ -1304,26 +1283,20 @@
               updatePauseButton();
             }
           });
-        }
+        };
 
-        // Initialize
-        function init() {
-          initialLayoutDone = false;
+        // --- Initialization ---
+        const init = () => {
+          canvas = document.getElementById("mesh-canvas");
+          ctx = canvas.getContext("2d");
           resizeCanvas();
           initNetwork();
           setupEventListeners();
-
-          // Start animation immediately
-          animationRunning = true;
           animate();
-        }
+        };
 
-        // Start when DOM is loaded
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", init);
-        } else {
-          init();
-        }
+        if (document.readyState !== "loading") init();
+        else document.addEventListener("DOMContentLoaded", init);
       })();
     </script>
   </body>
