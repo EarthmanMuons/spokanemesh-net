@@ -750,11 +750,9 @@
           floodRings = [];
           processedFloodIds = new Set();
 
-          // Place repeaters first with good distribution
-          placeRepeaters();
-
-          // Then place clients with good distribution
-          placeClients();
+          // Place nodes with good distribution
+          placeNodes(NODE_TYPES.REPEATER);
+          placeNodes(NODE_TYPES.CLIENT);
 
           // Send initial messages to demonstrate routing
           setTimeout(() => {
@@ -772,82 +770,77 @@
           }, 500);
         };
 
-        // Place repeaters with good distribution
-        const placeRepeaters = () => {
-          const repeaterCount = INITIAL_REPEATERS;
+        const placeNodes = (type) => {
+          const config = getNodeConfig(type);
+          if (!config) return;
 
-          // Create a grid-like distribution for repeaters
-          const gridCols = Math.ceil(Math.sqrt(repeaterCount));
-          const gridRows = Math.ceil(repeaterCount / gridCols);
+          const { count, maxAttempts, useGrid, postPlacement } = config;
 
-          const cellWidth = baseWidth / gridCols;
-          const cellHeight = baseHeight / gridRows;
+          let gridCols, gridRows, cellWidth, cellHeight;
+          if (useGrid) {
+            gridCols = Math.ceil(Math.sqrt(count));
+            gridRows = Math.ceil(count / gridCols);
+            cellWidth = baseWidth / gridCols;
+            cellHeight = baseHeight / gridRows;
+          }
 
-          let placedRepeaters = 0;
-          for (
-            let row = 0;
-            row < gridRows && placedRepeaters < repeaterCount;
-            row++
-          ) {
-            for (
-              let col = 0;
-              col < gridCols && placedRepeaters < repeaterCount;
-              col++
-            ) {
-              const repeater = createNode(NODE_TYPES.REPEATER);
+          let placed = 0;
+          for (let i = 0; i < count; i++) {
+            const node = createNode(type);
+            let attempts = 0;
+            let validPlacement = false;
 
-              // Find a good position in the cell
-              let attempts = 0;
-              let validPlacement = false;
-
-              while (!validPlacement && attempts < 10) {
-                repeater.x =
+            while (!validPlacement && attempts < maxAttempts) {
+              if (useGrid) {
+                const row = Math.floor(placed / gridCols);
+                const col = placed % gridCols;
+                node.x =
                   col * cellWidth + cellWidth * (0.25 + Math.random() * 0.5);
-                repeater.y =
+                node.y =
                   row * cellHeight + cellHeight * (0.25 + Math.random() * 0.5);
-
-                validPlacement = !isTooCloseToOtherNodes(
-                  repeater.x,
-                  repeater.y,
+              } else {
+                node.x = getRandomInt(
+                  node.radius * 2,
+                  baseWidth - node.radius * 2,
                 );
-                attempts++;
+                node.y = getRandomInt(
+                  node.radius * 2,
+                  baseHeight - node.radius * 2,
+                );
               }
 
-              nodes.push(repeater);
-              placedRepeaters++;
-            }
-          }
-        };
-
-        // Place clients with good distribution
-        const placeClients = () => {
-          const clientCount = INITIAL_CLIENTS;
-
-          for (let i = 0; i < clientCount; i++) {
-            let validPlacement = false;
-            let attempts = 0;
-            let client = createNode(NODE_TYPES.CLIENT);
-
-            // Try to place the client away from other nodes
-            while (!validPlacement && attempts < 30) {
-              client.x = getRandomInt(
-                client.radius * 2,
-                baseWidth - client.radius * 2,
-              );
-              client.y = getRandomInt(
-                client.radius * 2,
-                baseHeight - client.radius * 2,
-              );
-
-              validPlacement = !isTooCloseToOtherNodes(client.x, client.y);
+              validPlacement = !isTooCloseToOtherNodes(node.x, node.y);
               attempts++;
             }
 
-            nodes.push(client);
+            nodes.push(node);
+            placed++;
           }
 
-          // Make sure every client can reach at least one repeater
-          ensureClientConnectivity();
+          if (postPlacement) {
+            postPlacement();
+          }
+        };
+
+        const getNodeConfig = (type) => {
+          switch (type) {
+            case NODE_TYPES.CLIENT:
+              return {
+                count: INITIAL_CLIENTS,
+                maxAttempts: 30,
+                useGrid: false,
+                postPlacement: ensureClientConnectivity,
+              };
+            case NODE_TYPES.REPEATER:
+              return {
+                count: INITIAL_REPEATERS,
+                maxAttempts: 10,
+                useGrid: true,
+              };
+            default:
+              console.error(`Unknown node type: ${type}`);
+              return null;
+          }
         };
 
         // Ensure every client can communicate with at least one repeater
