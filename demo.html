@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mesh Network Animation</title>
+    <title>Mesh Network Demonstration</title>
     <style>
       :root {
         /* Inland Northwest inspired color palette */
@@ -191,6 +191,7 @@
         // --- State Variables ---
         let canvas;
         let ctx;
+        let dpr = window.devicePixelRatio || 1;
         let nodes = [];
         let messages = [];
         let floodRings = [];
@@ -1174,11 +1175,11 @@
           const newWidth = container.offsetWidth;
           const newHeight = container.offsetHeight;
 
-          // Set canvas size to match container
-          canvas.width = newWidth;
-          canvas.height = newHeight;
+          canvas.width = newWidth * dpr;
+          canvas.height = newHeight * dpr;
+          canvas.style.width = newWidth + "px";
+          canvas.style.height = newHeight + "px";
 
-          // First time setup - record initial dimensions and create layout
           if (!initialLayoutDone) {
             baseWidth = newWidth;
             baseHeight = newHeight;
@@ -1187,7 +1188,6 @@
             return;
           }
 
-          // Calculate scaling factors based on width and height
           const widthScaleFactor = newWidth / baseWidth;
           const heightScaleFactor = newHeight / baseHeight;
 
@@ -1296,6 +1296,7 @@
         const init = () => {
           canvas = document.getElementById("mesh-canvas");
           ctx = canvas.getContext("2d");
+          ctx.scale(dpr, dpr);
           resizeCanvas();
           initNetwork();
           setupEventListeners();
