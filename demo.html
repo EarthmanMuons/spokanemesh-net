@@ -202,6 +202,8 @@
         let pauseBtn;
         let baseWidth, baseHeight;
         let scaleFactor = 1;
+        let scaleVelocity = 0;
+        let targetScaleFactor = 1;
         let initialLayoutDone = false;
         let lastAutoMessageTime = Date.now();
         let nextAutoMessageTime = 1000;
@@ -237,6 +239,8 @@
         // Animation properties
         const MESSAGE_SPEED = 2.5;
         const FLOOD_EXPANSION_SPEED = 1.5;
+        const SCALE_SPRING = 0.1; // spring stiffness
+        const SCALE_DAMPING = 0.8; // friction resistance
 
         const AUTO_MESSAGE_MIN = 700;
         const AUTO_MESSAGE_MAX = 1700;
@@ -1142,6 +1146,13 @@
         // Animation loop
         const animate = () => {
           if (!animationRunning) return;
+
+          // Smooth, springy zoom animation
+          const scaleDelta = targetScaleFactor - scaleFactor;
+          scaleVelocity += scaleDelta * SCALE_SPRING;
+          scaleVelocity *= SCALE_DAMPING;
+          scaleFactor += scaleVelocity;
+
           updateMessages();
           updateFloods();
           checkAutoMessages();
@@ -1175,9 +1186,9 @@
           const heightScaleFactor = newHeight / baseHeight;
 
           if (newWidth / newHeight > baseWidth / baseHeight) {
-            scaleFactor = heightScaleFactor;
+            targetScaleFactor = heightScaleFactor;
           } else {
-            scaleFactor = widthScaleFactor;
+            targetScaleFactor = widthScaleFactor;
           }
         };
 
@@ -1228,17 +1239,6 @@
                       ? REPEATER_RADIUS
                       : CLIENT_RADIUS;
                 });
-              }
-
-              if (isPortrait()) {
-                INITIAL_CLIENTS = 15;
-                INITIAL_REPEATERS = 6;
-                MIN_NODE_DISTANCE = 40;
-              } else {
-                // Landscape mode; spread nodes out more
-                INITIAL_CLIENTS = 20;
-                INITIAL_REPEATERS = 8;
-                MIN_NODE_DISTANCE = 60;
               }
             }, 150); // Debounce delay in ms
           });
