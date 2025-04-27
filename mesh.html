@@ -211,7 +211,7 @@
         };
 
         const MESSAGE_TYPES = {
-          POINT_TO_POINT: "point",
+          DIRECT: "direct",
           FLOOD: "flood",
         };
 
@@ -420,7 +420,7 @@
                   needRepeaters[
                     Math.floor(Math.random() * needRepeaters.length)
                   ];
-                message = createPointToPointMessage(sourceNode, targetNode);
+                message = createDirectMessage(sourceNode, targetNode);
 
                 // Prefer routes with more hops
                 if (message && message.route.length > 3) {
@@ -439,13 +439,13 @@
               directReachable[
                 Math.floor(Math.random() * directReachable.length)
               ];
-            message = createPointToPointMessage(sourceNode, targetNode);
+            message = createDirectMessage(sourceNode, targetNode);
           }
           // If still no message but we have clients requiring repeaters, use the first valid route found
           else if (!message && needRepeaters.length > 0) {
             for (let i = 0; i < needRepeaters.length; i++) {
               targetNode = needRepeaters[i];
-              message = createPointToPointMessage(sourceNode, targetNode);
+              message = createDirectMessage(sourceNode, targetNode);
               if (message) break;
             }
           }
@@ -497,7 +497,7 @@
 
         const drawMessages = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) return;
+            if (message.type !== MESSAGE_TYPES.DIRECT) return;
 
             const color = MESSAGE_COLOR;
 
@@ -718,8 +718,8 @@
           };
         };
 
-        // Create a point-to-point message
-        const createPointToPointMessage = (sourceNode, targetNode) => {
+        // Create a direct message
+        const createDirectMessage = (sourceNode, targetNode) => {
           // Find the best route that respects the range limitations
           const route = findRoute(sourceNode, targetNode);
 
@@ -733,7 +733,7 @@
 
           return {
             id: generateId(),
-            type: MESSAGE_TYPES.POINT_TO_POINT,
+            type: MESSAGE_TYPES.DIRECT,
             sourceId: sourceNode.id,
             targetId: targetNode.id,
             x: sourceNode.x,
@@ -923,7 +923,7 @@
         const updateMessages = () => {
           for (let i = messages.length - 1; i >= 0; i--) {
             const message = messages[i];
-            if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) continue;
+            if (message.type !== MESSAGE_TYPES.DIRECT) continue;
 
             if (message.delivered) {
               // Keep the message for a short while before removing
@@ -1108,7 +1108,7 @@
         // Draw message routes (faint lines showing the path)
         const drawMessageRoutes = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) return;
+            if (message.type !== MESSAGE_TYPES.DIRECT) return;
             if (message.delivered) return; // Don't show routes for delivered messages
 
             // Draw the complete route
@@ -1132,7 +1132,7 @@
         // Draw trails behind messages
         const drawMessageTrails = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_TYPES.POINT_TO_POINT) return;
+            if (message.type !== MESSAGE_TYPES.DIRECT) return;
             if (!message.trail || message.trail.length < 2) return;
 
             ctx.beginPath();
