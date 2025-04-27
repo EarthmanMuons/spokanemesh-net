@@ -1251,8 +1251,12 @@
             .addEventListener("click", resetNetwork);
 
           // Pause animation when not in viewport
-          window.addEventListener("scroll", toggleAnimationOnVisibility);
-          window.addEventListener("resize", toggleAnimationOnVisibility);
+          window.addEventListener("scroll", toggleAnimationOnVisibility, {
+            passive: true,
+          });
+          window.addEventListener("resize", toggleAnimationOnVisibility, {
+            passive: true,
+          });
 
           // Add orientation change listener for mobile devices
           window.addEventListener("orientationchange", () => {
