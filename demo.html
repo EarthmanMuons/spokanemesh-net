@@ -205,6 +205,7 @@
         let scaleVelocity = 0;
         let targetScaleFactor = 1;
         let initialLayoutDone = false;
+        let lastFrameTime = 0;
         let lastAutoMessageTime = Date.now();
         let nextAutoMessageTime = 1000;
 
@@ -236,9 +237,23 @@
         let INITIAL_CLIENTS = 25;
         let INITIAL_REPEATERS = 10;
 
+        const isMobileDevice = () => {
+          return (
+            window.innerWidth <= 768 ||
+            (navigator.maxTouchPoints > 0 &&
+              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                navigator.userAgent,
+              ))
+          );
+        };
+
         // Animation properties
-        const MESSAGE_SPEED = 2.5;
-        const FLOOD_EXPANSION_SPEED = 1.5;
+        const TARGET_FPS = isMobileDevice() ? 40 : 60;
+        const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
+        const MESSAGE_SPEED = 320; // pixels per second
+        const FLOOD_EXPANSION_SPEED = 160; // pixels per second
+        const DISAPPEARANCE_SPEED = 0.6; // seconds
+
         const SCALE_SPRING = 0.1; // spring stiffness
         const SCALE_DAMPING = 0.8; // friction resistance
 
@@ -509,15 +524,17 @@
 
             if (message.delivered) {
               // Draw delivery effect (growing pulse)
+              const easedProgress = Math.pow(message.progress, 0.5);
+
               ctx.beginPath();
               ctx.arc(
                 message.x,
                 message.y,
-                message.size + message.progress * 15,
+                message.size + easedProgress * 15,
                 0,
                 Math.PI * 2,
               );
-              ctx.fillStyle = `rgba(217, 119, 98, ${1 - message.progress})`;
+              ctx.fillStyle = `rgba(217, 119, 98, ${1 - easedProgress})`;
               ctx.fill();
             }
 
@@ -562,7 +579,7 @@
           const visible = isInViewport(canvas);
           if (visible && !animationRunning) {
             animationRunning = true;
-            animate();
+            animate(performance.now());
             updatePauseButton();
           } else if (!visible && animationRunning) {
             animationRunning = false;
@@ -639,17 +656,6 @@
             (node) =>
               (excludeId === null || node.id !== excludeId) &&
               getDistance({ x, y }, node) < MIN_NODE_DISTANCE,
-          );
-        };
-
-        // Detect if the device is mobile
-        const isMobileDevice = () => {
-          return (
-            window.innerWidth <= 768 ||
-            (navigator.maxTouchPoints > 0 &&
-              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-                navigator.userAgent,
-              ))
           );
         };
 
@@ -914,14 +920,13 @@
           return config;
         };
 
-        const updateMessages = () => {
+        const updateMessages = (deltaTime) => {
           for (let i = messages.length - 1; i >= 0; i--) {
             const message = messages[i];
             if (message.type !== MESSAGE_TYPES.DIRECT) continue;
 
             if (message.delivered) {
-              // Keep the message for a short while before removing
-              message.progress += 0.025; // Faster disappearance
+              message.progress += deltaTime / DISAPPEARANCE_SPEED;
               if (message.progress >= 1) {
                 messages.splice(i, 1);
               }
@@ -941,22 +946,32 @@
             const currentPoint = message.route[currentHopIndex];
             const nextPoint = message.route[nextHopIndex];
 
+            const now = performance.now();
+
             // Add current position to trail
-            message.trail.push({ x: message.x, y: message.y });
-            if (message.trail.length > message.trail_max_length) {
-              message.trail.shift();
-            }
+            message.trail.push({ x: message.x, y: message.y, time: now });
+
+            // cap trail by time
+            const trailDuration = 0.15 * 1000; // seconds worth of trail
+
+            message.trail = message.trail.filter(
+              (p) => now - p.time <= trailDuration,
+            );
 
             // Calculate distance to next hop
             const dx = nextPoint.x - message.x;
             const dy = nextPoint.y - message.y;
             const distanceToNext = Math.sqrt(dx * dx + dy * dy);
 
-            if (distanceToNext <= MESSAGE_SPEED) {
+            const distance = MESSAGE_SPEED * deltaTime;
+
+            if (distance >= distanceToNext) {
               // Reached next hop
               message.x = nextPoint.x;
               message.y = nextPoint.y;
               message.currentHopIndex = nextHopIndex;
+
+              message.trail = [];
 
               // If we've reached the final destination, mark as delivered
               if (nextHopIndex === message.route.length - 1) {
@@ -966,18 +981,18 @@
               }
             } else {
               // Move towards next hop
-              message.x += (dx / distanceToNext) * MESSAGE_SPEED;
-              message.y += (dy / distanceToNext) * MESSAGE_SPEED;
+              message.x += (dx / distanceToNext) * distance;
+              message.y += (dy / distanceToNext) * distance;
             }
           }
         };
 
-        const updateFloods = () => {
+        const updateFloods = (deltaTime) => {
           for (let i = floodRings.length - 1; i >= 0; i--) {
             const ring = floodRings[i];
 
             // Expand the ring
-            ring.radius += ring.expandSpeed;
+            ring.radius += ring.expandSpeed * deltaTime;
             ring.opacity = 0.7 * (1 - ring.radius / ring.maxRadius);
 
             // Check if any nodes are hit by the expanding ring
@@ -1128,6 +1143,12 @@
               ctx.lineTo(trail[i].x, trail[i].y);
             }
 
+            // Fade based on how old the last point is
+            const now = performance.now();
+            const oldest = trail[0].time;
+            const newest = trail[trail.length - 1].time;
+            const alpha = Math.min(1, (now - oldest) / (newest - oldest + 1));
+
             const gradient = ctx.createLinearGradient(
               trail[0].x,
               trail[0].y,
@@ -1144,8 +1165,16 @@
         };
 
         // Animation loop
-        const animate = () => {
+        const animate = (timestamp) => {
           if (!animationRunning) return;
+
+          const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
+
+          if (timestamp - lastFrameTime < MIN_FRAME_DELAY * 0.9) {
+            animationFrame = requestAnimationFrame(animate);
+            return;
+          }
+          lastFrameTime = timestamp;
 
           // Smooth, springy zoom animation
           const scaleDelta = targetScaleFactor - scaleFactor;
@@ -1153,8 +1182,8 @@
           scaleVelocity *= SCALE_DAMPING;
           scaleFactor += scaleVelocity;
 
-          updateMessages();
-          updateFloods();
+          updateMessages(deltaTime);
+          updateFloods(deltaTime);
           checkAutoMessages();
           draw();
           animationFrame = requestAnimationFrame(animate);
@@ -1195,7 +1224,7 @@
         const togglePause = () => {
           animationRunning = !animationRunning;
           updatePauseButton();
-          if (animationRunning) animate();
+          if (animationRunning) animate(performance.now());
         };
 
         // TODO: convert remaining original functionality from below
@@ -1209,7 +1238,7 @@
         const resetNetwork = () => {
           cancelAnimationFrame(animationFrame);
           initNetwork();
-          animate();
+          animate(performance.now());
           updatePauseButton();
         };
 
@@ -1283,7 +1312,7 @@
               cancelAnimationFrame(animationFrame);
             } else if (isInViewport(canvas)) {
               animationRunning = true;
-              animate();
+              animate(performance.now());
               updatePauseButton();
             }
           });
@@ -1296,7 +1325,7 @@
           resizeCanvas();
           initNetwork();
           setupEventListeners();
-          animate();
+          animate(performance.now());
         };
 
         if (document.readyState !== "loading") init();
