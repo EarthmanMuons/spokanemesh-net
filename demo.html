@@ -1202,6 +1202,10 @@
           updatePauseButton();
         };
 
+        const isPortrait = () => {
+          return window.matchMedia("(orientation: portrait)").matches;
+        };
+
         const setupEventListeners = () => {
           window.addEventListener("resize", () => {
             clearTimeout(resizeTimeout);
@@ -1224,6 +1228,17 @@
                       ? REPEATER_RADIUS
                       : CLIENT_RADIUS;
                 });
+              }
+
+              if (isPortrait()) {
+                INITIAL_CLIENTS = 15;
+                INITIAL_REPEATERS = 6;
+                MIN_NODE_DISTANCE = 40;
+              } else {
+                // Landscape mode; spread nodes out more
+                INITIAL_CLIENTS = 20;
+                INITIAL_REPEATERS = 8;
+                MIN_NODE_DISTANCE = 60;
               }
             }, 150); // Debounce delay in ms
           });
