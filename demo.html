@@ -192,6 +192,7 @@
         let canvas;
         let ctx;
         let dpr = window.devicePixelRatio || 1;
+        let resizeTimeout;
         let nodes = [];
         let messages = [];
         let floodRings = [];
@@ -1180,6 +1181,9 @@
           canvas.style.width = newWidth + "px";
           canvas.style.height = newHeight + "px";
 
+          // Scale the drawing context for devicePixelRatio
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
           if (!initialLayoutDone) {
             baseWidth = newWidth;
             baseHeight = newHeight;
@@ -1223,7 +1227,30 @@
         };
 
         const setupEventListeners = () => {
-          window.addEventListener("resize", resizeCanvas);
+          window.addEventListener("resize", () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+              if (window.devicePixelRatio !== dpr) {
+                dpr = window.devicePixelRatio || 1;
+              }
+              resizeCanvas();
+              updateNodeSizes();
+
+              // Update existing node sizes after orientation/resize
+              if (nodes.length > 0) {
+                nodes.forEach((node) => {
+                  node.size =
+                    node.type === NODE_TYPES.REPEATER
+                      ? REPEATER_SIZE
+                      : CLIENT_SIZE;
+                  node.radius =
+                    node.type === NODE_TYPES.REPEATER
+                      ? REPEATER_RADIUS
+                      : CLIENT_RADIUS;
+                });
+              }
+            }, 150); // Debounce delay in ms
+          });
 
           pauseBtn = document.getElementById("toggle-pause");
 
@@ -1258,27 +1285,6 @@
             passive: true,
           });
 
-          // Add orientation change listener for mobile devices
-          window.addEventListener("orientationchange", () => {
-            setTimeout(() => {
-              resizeCanvas();
-              updateNodeSizes();
-              // If nodes exist, update their sizes
-              if (nodes.length > 0) {
-                nodes.forEach((node) => {
-                  node.size =
-                    node.type === NODE_TYPES.REPEATER
-                      ? REPEATER_SIZE
-                      : CLIENT_SIZE;
-                  node.radius =
-                    node.type === NODE_TYPES.REPEATER
-                      ? REPEATER_RADIUS
-                      : CLIENT_RADIUS;
-                });
-              }
-            }, 100); // Short delay to allow orientation to complete
-          });
-
           // Pause/resume on visibility change
           document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
@@ -1296,7 +1302,6 @@
         const init = () => {
           canvas = document.getElementById("mesh-canvas");
           ctx = canvas.getContext("2d");
-          ctx.scale(dpr, dpr);
           resizeCanvas();
           initNetwork();
           setupEventListeners();
