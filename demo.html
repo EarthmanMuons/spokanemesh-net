@@ -686,18 +686,6 @@
           REPEATER_RANGE_VARIANCE = 50 * sizeFactor;
         };
 
-        // Convert screen coordinates to virtual coordinates (accounting for scale)
-        const screenToVirtual = (screenX, screenY) => {
-          // Calculate the center offset
-          const offsetX = (canvas.width / scaleFactor - baseWidth) / 2;
-          const offsetY = (canvas.height / scaleFactor - baseHeight) / 2;
-
-          return {
-            x: screenX / scaleFactor - Math.max(0, offsetX),
-            y: screenY / scaleFactor - Math.max(0, offsetY),
-          };
-        };
-
         // Generate a random ID
         const generateId = () => {
           return Math.random().toString(36).substr(2, 9);
@@ -1047,31 +1035,22 @@
         const draw = () => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // Calculate the center offset to position the network in the middle
-          const offsetX = (canvas.width / scaleFactor - baseWidth) / 2;
-          const offsetY = (canvas.height / scaleFactor - baseHeight) / 2;
+          const scaledWidth = canvas.width / dpr;
+          const scaledHeight = canvas.height / dpr;
 
-          // Apply scaling and centering for all drawing operations
+          // Calculate the center offset to position the network in the middle
+          const offsetX = (scaledWidth - baseWidth * scaleFactor) / 2;
+          const offsetY = (scaledHeight - baseHeight * scaleFactor) / 2;
+
           ctx.save();
           ctx.scale(scaleFactor, scaleFactor);
           ctx.translate(Math.max(0, offsetX), Math.max(0, offsetY));
 
-          // Draw node ranges
           drawNodeRanges();
-
-          // Draw flood rings
           drawFloodRings();
-
-          // Draw message routes
           drawMessageRoutes();
-
-          // Draw message trails
           drawMessageTrails();
-
-          // Draw nodes
           drawNodes();
-
-          // Draw messages
           drawMessages();
 
           // Restore original scaling
@@ -1181,8 +1160,8 @@
           canvas.style.width = newWidth + "px";
           canvas.style.height = newHeight + "px";
 
-          // Scale the drawing context for devicePixelRatio
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transforms first
+          ctx.scale(dpr, dpr); // ...then apply devicePixelRatio scaling
 
           if (!initialLayoutDone) {
             baseWidth = newWidth;
@@ -1195,12 +1174,9 @@
           const widthScaleFactor = newWidth / baseWidth;
           const heightScaleFactor = newHeight / baseHeight;
 
-          // Use the more appropriate scaling factor based on aspect ratio
           if (newWidth / newHeight > baseWidth / baseHeight) {
-            // Wider than original - use height as the limiting factor
             scaleFactor = heightScaleFactor;
           } else {
-            // Taller than original - use width as the limiting factor
             scaleFactor = widthScaleFactor;
           }
         };
