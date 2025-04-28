@@ -210,15 +210,8 @@
         let nextAutoMessageTime = 1000;
 
         // --- Constants ---
-        const NODE_TYPES = {
-          CLIENT: "client",
-          REPEATER: "repeater",
-        };
-
-        const MESSAGE_TYPES = {
-          DIRECT: "direct",
-          FLOOD: "flood",
-        };
+        const NODE_TYPES = { CLIENT: "client", REPEATER: "repeater" };
+        const MESSAGE_TYPES = { DIRECT: "direct", FLOOD: "flood" };
 
         // Node properties - these will be updated based on device
         let CLIENT_RADIUS = 12;
@@ -231,25 +224,12 @@
         let CLIENT_RANGE_VARIANCE = 30;
         let REPEATER_RANGE_BASE = 300;
         let REPEATER_RANGE_VARIANCE = 50;
-        const MESSAGE_SIZE = 7;
-
-        // Initial node count - will adjust for mobile
-        let INITIAL_CLIENTS = 25;
-        let INITIAL_REPEATERS = 10;
-
-        const isMobileDevice = () => {
-          return (
-            window.innerWidth <= 768 ||
-            (navigator.maxTouchPoints > 0 &&
-              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-                navigator.userAgent,
-              ))
-          );
-        };
 
         // Animation properties
         const TARGET_FPS = isMobileDevice() ? 40 : 60;
         const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
+
+        const MESSAGE_SIZE = 7;
         const MESSAGE_SPEED = 320; // pixels per second
         const FLOOD_EXPANSION_SPEED = 160; // pixels per second
         const DISAPPEARANCE_SPEED = 0.6; // seconds
@@ -257,71 +237,21 @@
         const SCALE_SPRING = 0.1; // spring stiffness
         const SCALE_DAMPING = 0.8; // friction resistance
 
-        const AUTO_MESSAGE_MIN = 700;
-        const AUTO_MESSAGE_MAX = 1700;
-        const AUTO_MESSAGE_BATCH = 4; // Send 4 messages per interval
+        const AUTO_MESSAGE_MIN = 700; // milliseconds
+        const AUTO_MESSAGE_MAX = 1700; // milliseconds
+        const AUTO_MESSAGE_BATCH = 4; // messages per interval
 
-        // Minimum distance between nodes
-        let MIN_NODE_DISTANCE = 70;
-
-        // Max hops for messages
         const MAX_MESSAGE_HOPS = 5;
+
+        let INITIAL_CLIENTS = 25;
+        let INITIAL_REPEATERS = 10;
+
+        let MIN_NODE_DISTANCE = 70;
 
         const rootStyles = getComputedStyle(document.documentElement);
         const MESSAGE_COLOR = rootStyles
           .getPropertyValue("--message-color")
           .trim();
-
-        // Ensure every client can communicate with at least one repeater
-        const ensureClientConnectivity = () => {
-          const repeaters = nodes.filter(
-            (node) => node.type === NODE_TYPES.REPEATER,
-          );
-
-          nodes.forEach((node) => {
-            if (node.type === NODE_TYPES.CLIENT) {
-              // Check if this client can reach any repeater
-              const canReachRepeater = repeaters.some(
-                (repeater) =>
-                  getDistance(node, repeater) <=
-                  Math.max(node.range, repeater.range),
-              );
-
-              if (!canReachRepeater && repeaters.length > 0) {
-                // Find the closest repeater
-                repeaters.sort(
-                  (a, b) => getDistance(node, a) - getDistance(node, b),
-                );
-                const closest = repeaters[0];
-
-                // Calculate a position that's within range but not too close
-                const distance = getDistance(node, closest);
-                const angle = Math.atan2(
-                  node.y - closest.y,
-                  node.x - closest.x,
-                );
-                const targetDistance =
-                  Math.min(closest.range, node.range) * 0.9; // 90% of the smaller range
-
-                let newX = closest.x + Math.cos(angle) * targetDistance;
-                let newY = closest.y + Math.sin(angle) * targetDistance;
-
-                // Make sure it's within canvas bounds
-                newX = Math.max(
-                  node.radius * 2,
-                  Math.min(newX, baseWidth - node.radius * 2),
-                );
-                newY = Math.max(
-                  node.radius * 2,
-                  Math.min(newY, baseHeight - node.radius * 2),
-                );
-
-                node.x = newX;
-                node.y = newY;
-              }
-            }
-          });
-        };
 
         const NODE_CONFIGS = {
           [NODE_TYPES.CLIENT]: {
@@ -339,7 +269,14 @@
           },
         };
 
-        const adjustColorBrightness = (hex, percent) => {
+        // Add precomputed borderColor
+        for (const key in NODE_CONFIGS) {
+          const config = NODE_CONFIGS[key];
+          config.borderColor = adjustColorBrightness(config.color, -20);
+        }
+
+        // --- Utility Functions ---
+        function adjustColorBrightness(hex, percent) {
           // Parse hex color to RGB
           let r = parseInt(hex.substring(1, 3), 16);
           let g = parseInt(hex.substring(3, 5), 16);
@@ -352,25 +289,34 @@
 
           // Convert back to hex
           return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-        };
-
-        // Add precomputed borderColor
-        for (const key in NODE_CONFIGS) {
-          const config = NODE_CONFIGS[key];
-          config.borderColor = adjustColorBrightness(config.color, -20);
         }
 
-        // --- Utility Functions ---
-        const getRandomInt = (min, max) =>
-          Math.floor(Math.random() * (max - min + 1)) + min;
+        function getRandomInt(min, max) {
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
 
-        const getDistance = (a, b) => {
+        function getDistance(a, b) {
           const dx = a.x - b.x;
           const dy = a.y - b.y;
           return Math.sqrt(dx * dx + dy * dy);
-        };
+        }
+
+        function generateId() {
+          return Math.random().toString(36).substr(2, 9);
+        }
+
+        function isMobileDevice() {
+          return (
+            window.innerWidth <= 768 ||
+            (navigator.maxTouchPoints > 0 &&
+              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                navigator.userAgent,
+              ))
+          );
+        }
 
         // --- Core Simulation Functions ---
+
         const addNode = (type) => {
           const node = createNode(type);
           let validPlacement = false;
@@ -605,26 +551,10 @@
           );
         };
 
-        // TODO: convert remaining original functionality from below
-        //const createNode = (type) => {
-        //  const size = type === NODE_TYPES.REPEATER ? 20 : 12;
-        //  return {
-        //    id: crypto.randomUUID(),
-        //    type,
-        //    x: 0,
-        //    y: 0,
-        //    radius: size,
-        //    size,
-        //    range: type === NODE_TYPES.REPEATER ? 300 : 200,
-        //  };
-        //};
-
-        // Create a node
-        const createNode = (type) => {
+        function createNode(type) {
           const isRepeater = type === NODE_TYPES.REPEATER;
           const radius = isRepeater ? REPEATER_RADIUS : CLIENT_RADIUS;
 
-          // More randomized transmission ranges
           const range = isRepeater
             ? REPEATER_RANGE_BASE +
               getRandomInt(-REPEATER_RANGE_VARIANCE, REPEATER_RANGE_VARIANCE)
@@ -643,21 +573,15 @@
           };
 
           return node;
-        };
+        }
 
-        // TODO: convert remaining original functionality from below
-        //const isTooCloseToOtherNodes = (x, y) => {
-        //  return nodes.some(node => getDistance({x, y}, node) < 40);
-        //};
-
-        // Check if a position is too close to existing nodes
-        const isTooCloseToOtherNodes = (x, y, excludeId = null) => {
+        function isTooCloseToOtherNodes(x, y, excludeId = null) {
           return nodes.some(
             (node) =>
               (excludeId === null || node.id !== excludeId) &&
               getDistance({ x, y }, node) < MIN_NODE_DISTANCE,
           );
-        };
+        }
 
         // Update node sizes based on device
         const updateNodeSizes = () => {
@@ -696,13 +620,8 @@
           REPEATER_RANGE_VARIANCE = 50 * sizeFactor;
         };
 
-        // Generate a random ID
-        const generateId = () => {
-          return Math.random().toString(36).substr(2, 9);
-        };
-
         // Create a flood ring (visualization for flood messages)
-        const createFloodRing = (sourceNode, originalFloodId = null) => {
+        function createFloodRing(sourceNode, originalFloodId = null) {
           const floodId = originalFloodId || generateId();
           return {
             id: generateId(),
@@ -716,10 +635,10 @@
             opacity: 0.7,
             affectedNodes: new Set(), // Track which nodes have been affected by this flood
           };
-        };
+        }
 
         // Create a direct message
-        const createDirectMessage = (sourceNode, targetNode) => {
+        function createDirectMessage(sourceNode, targetNode) {
           // Find the best route that respects the range limitations
           const route = findRoute(sourceNode, targetNode);
 
@@ -746,10 +665,10 @@
             trail: [], // Store previous positions for trail effect
             trail_max_length: 10, // Max number of positions to store
           };
-        };
+        }
 
         // Find a route from source to target through repeaters if needed
-        const findRoute = (sourceNode, targetNode) => {
+        function findRoute(sourceNode, targetNode) {
           const route = [
             { id: sourceNode.id, x: sourceNode.x, y: sourceNode.y },
           ];
@@ -774,14 +693,14 @@
           }
 
           return route;
-        };
+        }
 
-        const findPathThroughRepeaters = (
+        function findPathThroughRepeaters(
           route,
           currentNode,
           targetNode,
           hopCount,
-        ) => {
+        ) {
           // Base case: too many hops
           if (hopCount >= MAX_MESSAGE_HOPS) {
             return false;
@@ -827,7 +746,7 @@
           }
 
           return false;
-        };
+        }
 
         // Initialize the network with better node placement for connectivity
         const initNetwork = () => {
@@ -858,6 +777,57 @@
             }
           }, 500);
         };
+
+        // Ensure every client can communicate with at least one repeater
+        function ensureClientConnectivity() {
+          const repeaters = nodes.filter(
+            (node) => node.type === NODE_TYPES.REPEATER,
+          );
+
+          nodes.forEach((node) => {
+            if (node.type === NODE_TYPES.CLIENT) {
+              // Check if this client can reach any repeater
+              const canReachRepeater = repeaters.some(
+                (repeater) =>
+                  getDistance(node, repeater) <=
+                  Math.max(node.range, repeater.range),
+              );
+
+              if (!canReachRepeater && repeaters.length > 0) {
+                // Find the closest repeater
+                repeaters.sort(
+                  (a, b) => getDistance(node, a) - getDistance(node, b),
+                );
+                const closest = repeaters[0];
+
+                // Calculate a position that's within range but not too close
+                const distance = getDistance(node, closest);
+                const angle = Math.atan2(
+                  node.y - closest.y,
+                  node.x - closest.x,
+                );
+                const targetDistance =
+                  Math.min(closest.range, node.range) * 0.9; // 90% of the smaller range
+
+                let newX = closest.x + Math.cos(angle) * targetDistance;
+                let newY = closest.y + Math.sin(angle) * targetDistance;
+
+                // Make sure it's within canvas bounds
+                newX = Math.max(
+                  node.radius * 2,
+                  Math.min(newX, baseWidth - node.radius * 2),
+                );
+                newY = Math.max(
+                  node.radius * 2,
+                  Math.min(newY, baseHeight - node.radius * 2),
+                );
+
+                node.x = newX;
+                node.y = newY;
+              }
+            }
+          });
+        }
 
         const placeNodes = (type) => {
           const config = getNodeConfig(type);
@@ -911,14 +881,14 @@
           }
         };
 
-        const getNodeConfig = (type) => {
+        function getNodeConfig(type) {
           const config = NODE_CONFIGS[type];
           if (!config) {
             console.error(`Unknown node type: ${type}`);
             return null;
           }
           return config;
-        };
+        }
 
         const updateMessages = (deltaTime) => {
           for (let i = messages.length - 1; i >= 0; i--) {
