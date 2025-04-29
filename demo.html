@@ -98,8 +98,8 @@
       .controls {
         display: flex;
         flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 0.5rem;
+        justify-content: center;
+        gap: 0.6rem;
         padding: 1rem;
         max-width: 1200px;
         margin: 0 auto;
@@ -146,6 +146,7 @@
 
         .controls button {
           font-size: 0.8rem;
+          min-width: 130px;
           padding: 0.4rem 0.8rem;
         }
       }
@@ -173,18 +174,7 @@
       </noscript>
     </section>
 
-    <div class="controls">
-      <button id="send-message">
-        <span class="icon">➤</span> Send Message
-      </button>
-      <button id="send-flood"><span class="icon">⊕</span> Send Flood</button>
-      <button id="add-client"><span class="icon">+</span> Add Client</button>
-      <button id="add-repeater">
-        <span class="icon">⟲</span> Add Repeater
-      </button>
-      <button id="toggle-pause"><span class="icon">❚❚</span> Pause</button>
-      <button id="reset"><span class="icon">↺</span> Reset</button>
-    </div>
+    <div class="controls" id="controls-container"></div>
 
     <script>
       (() => {
@@ -242,6 +232,49 @@
 
         const FLOOD_EXPANSION_SPEED = 160; // pixels per second
         const DISAPPEARANCE_SPEED = 0.6; // seconds
+
+        const BUTTON_CONFIGS = [
+          {
+            id: "send-message",
+            icon: "➤",
+            label: "Send Message",
+            action: () => {
+              sendMessage();
+              setTimeout(sendMessage, 150);
+              setTimeout(sendMessage, 300);
+            },
+          },
+          {
+            id: "send-flood",
+            icon: "⊕",
+            label: "Send Flood",
+            action: () => sendFlood(),
+          },
+          {
+            id: "add-client",
+            icon: "+",
+            label: "Add Client",
+            action: () => addNode(NODE_TYPES.CLIENT),
+          },
+          {
+            id: "add-repeater",
+            icon: "⇶",
+            label: "Add Repeater",
+            action: () => addNode(NODE_TYPES.REPEATER),
+          },
+          {
+            id: "toggle-pause",
+            icon: { pause: "❚❚", resume: "▶" },
+            label: { pause: "Pause", resume: "Resume" },
+            action: () => togglePause(),
+          },
+          {
+            id: "reset",
+            icon: "↻",
+            label: "Reset",
+            action: () => resetNetwork(),
+          },
+        ];
 
         // --- STATE VARIABLES ---
 
@@ -1095,11 +1128,31 @@
 
         const updatePauseButton = () => {
           if (!pauseBtn) pauseBtn = document.getElementById("toggle-pause");
-          const pauseIcon = pauseBtn.querySelector(".icon");
-          pauseIcon.textContent = animationRunning ? "❚❚" : "▶";
-          const buttonText = pauseBtn.textContent;
-          pauseBtn.textContent = animationRunning ? "Pause" : "Resume";
-          pauseBtn.prepend(pauseIcon);
+
+          const config = BUTTON_CONFIGS.find(
+            (btn) => btn.id === "toggle-pause",
+          );
+          if (!config) return;
+
+          const icon = animationRunning
+            ? config.icon.pause
+            : config.icon.resume;
+          const label = animationRunning
+            ? config.label.pause
+            : config.label.resume;
+
+          const iconSpan = pauseBtn.querySelector(".icon");
+          if (iconSpan) {
+            iconSpan.textContent = icon;
+          }
+
+          [...pauseBtn.childNodes].forEach((node, idx) => {
+            if (idx > 0 && node.nodeType === Node.TEXT_NODE) {
+              pauseBtn.removeChild(node);
+            }
+          });
+
+          pauseBtn.appendChild(document.createTextNode(" " + label));
         };
 
         const togglePause = () => {
@@ -1180,19 +1233,12 @@
               setTimeout(sendMessage, 300);
             });
 
-          document
-            .getElementById("send-flood")
-            .addEventListener("click", () => sendFlood());
-          document
-            .getElementById("add-client")
-            .addEventListener("click", () => addNode(NODE_TYPES.CLIENT));
-          document
-            .getElementById("add-repeater")
-            .addEventListener("click", () => addNode(NODE_TYPES.REPEATER));
-          pauseBtn.addEventListener("click", togglePause);
-          document
-            .getElementById("reset")
-            .addEventListener("click", resetNetwork);
+          BUTTON_CONFIGS.forEach(({ id, action }) => {
+            const button = document.getElementById(id);
+            if (button && action) {
+              button.addEventListener("click", action);
+            }
+          });
 
           // Pause animation when not in viewport
           window.addEventListener("scroll", toggleAnimationOnVisibility, {
@@ -1245,6 +1291,19 @@
         const init = () => {
           canvas = document.getElementById("mesh-canvas");
           ctx = canvas.getContext("2d");
+          const controlsContainer =
+            document.getElementById("controls-container");
+
+          BUTTON_CONFIGS.forEach(({ id, icon, label }) => {
+            const button = document.createElement("button");
+            button.id = id;
+
+            const iconSymbol = typeof icon === "object" ? icon.pause : icon;
+            const labelText = typeof label === "object" ? label.pause : label;
+
+            button.innerHTML = `<span class="icon">${iconSymbol}</span> ${labelText}`;
+            controlsContainer.appendChild(button);
+          });
 
           resizeCanvas();
           updateNodeSizes();
