@@ -1080,28 +1080,48 @@
           }
         };
 
-        const checkAutoMessages = () => {
-          const now = Date.now();
-          if (!initialBatchSent || now - autoSendTimestamp > autoSendDelay) {
-            const clients = nodes.filter((n) => n.type === NODE_TYPES.CLIENT);
-            if (!clients.length) return;
+        const scheduleAutoMessages = () => {
+          const idleCallback =
+            window.requestIdleCallback ||
+            function (cb) {
+              return setTimeout(() => cb({ timeRemaining: () => 0 }), 200);
+            };
 
-            const { delay, delayVariance, batchSize } = MESSAGE_CONFIG.autoSend;
+          idleCallback((deadline) => {
+            if (nodes.length && animationRunning) {
+              const now = Date.now();
+              if (
+                !initialBatchSent ||
+                now - autoSendTimestamp > autoSendDelay
+              ) {
+                const clients = nodes.filter(
+                  (n) => n.type === NODE_TYPES.CLIENT,
+                );
+                if (clients.length) {
+                  const { delay, delayVariance, batchSize } =
+                    MESSAGE_CONFIG.autoSend;
 
-            for (let i = 0; i < batchSize; i++) {
-              setTimeout(() => {
-                const source =
-                  clients[Math.floor(Math.random() * clients.length)];
-                Math.random() < 0.05
-                  ? sendFlood(source.id)
-                  : sendMessage(source.id);
-              }, i * 120);
+                  for (let i = 0; i < batchSize; i++) {
+                    setTimeout(() => {
+                      const source =
+                        clients[Math.floor(Math.random() * clients.length)];
+                      Math.random() < 0.05
+                        ? sendFlood(source.id)
+                        : sendMessage(source.id);
+                    }, i * 120);
+                  }
+
+                  autoSendTimestamp = now;
+                  autoSendDelay =
+                    delay + getRandomInt(-delayVariance, delayVariance);
+                  initialBatchSent = true;
+                }
+              }
             }
 
-            autoSendTimestamp = now;
-            autoSendDelay = delay + getRandomInt(-delayVariance, delayVariance);
-            if (!initialBatchSent) initialBatchSent = true;
-          }
+            // Schedule the next idle callback
+            scheduleAutoMessages();
+          });
         };
 
         // --- UI / EVENT FUNCTIONS ---
@@ -1255,7 +1275,6 @@
 
           updateMessages(deltaTime);
           updateFloods(deltaTime);
-          checkAutoMessages();
           draw();
           animationFrame = requestAnimationFrame(animate);
         };
@@ -1283,6 +1302,7 @@
           resizeCanvas();
           updateNodeSizes();
           initNetwork();
+          scheduleAutoMessages();
           setupEventListeners();
           animate(performance.now());
         };
