@@ -218,20 +218,20 @@
           },
         };
 
-        const MAX_PLACEMENT_ATTEMPTS = 30;
+        const PLACEMENT_ATTEMPTS_MAX = 30;
 
-        const MESSAGE_TYPES = { DIRECT: "direct", FLOOD: "flood" };
-        const MESSAGE_SIZE = 7;
-        const MESSAGE_SPEED = 320; // pixels per second
-
-        const AUTO_MESSAGE_MIN = 700; // milliseconds
-        const AUTO_MESSAGE_MAX = 1700; // milliseconds
-        const AUTO_MESSAGE_BATCH = 4; // messages per interval
-
-        const MESSAGE_HOPS_MAX = 5;
-
-        const MESSAGE_COLOR =
-          ROOT_STYLES.getPropertyValue("--message-color").trim();
+        const MESSAGE_CONFIG = {
+          types: { DIRECT: "direct", FLOOD: "flood" },
+          size: 7,
+          speed: 320, // pixels per second
+          maxHops: 5,
+          autoSend: {
+            delay: 1200, // milliseconds
+            delayVariance: 500, // milliseconds
+            batchSize: 4, // messages per interval
+          },
+          color: ROOT_STYLES.getPropertyValue("--message-color").trim(),
+        };
 
         // Animation properties
         const TARGET_FPS = isMobileDevice() ? 40 : 60;
@@ -263,8 +263,8 @@
         let targetScaleFactor = 1;
         let initialLayoutDone = false;
         let lastFrameTime = 0;
-        let lastAutoMessageTime = Date.now();
-        let nextAutoMessageTime = 1000;
+        let autoSendTimestamp = Date.now();
+        let autoSendDelay = MESSAGE_CONFIG.autoSend.delay;
 
         // --- UTILITY FUNCTIONS ---
 
@@ -354,7 +354,7 @@
             let attempts = 0;
             let validPlacement = false;
 
-            while (!validPlacement && attempts < MAX_PLACEMENT_ATTEMPTS) {
+            while (!validPlacement && attempts < PLACEMENT_ATTEMPTS_MAX) {
               if (useGrid) {
                 const row = Math.floor(placed / gridCols);
                 const col = placed % gridCols;
@@ -453,7 +453,7 @@
           hopCount,
         ) {
           // Base case: too many hops
-          if (hopCount >= MESSAGE_HOPS_MAX) {
+          if (hopCount >= MESSAGE_CONFIG.maxHops) {
             return false;
           }
 
@@ -542,12 +542,12 @@
 
           return {
             id: generateId(),
-            type: MESSAGE_TYPES.DIRECT,
+            type: MESSAGE_CONFIG.types.DIRECT,
             sourceId: sourceNode.id,
             targetId: targetNode.id,
             x: sourceNode.x,
             y: sourceNode.y,
-            size: MESSAGE_SIZE,
+            size: MESSAGE_CONFIG.size,
             route: route,
             currentHopIndex: 0,
             delivered: false,
@@ -792,7 +792,7 @@
         // Draw message routes (faint lines showing the path)
         const drawMessageRoutes = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_TYPES.DIRECT) return;
+            if (message.type !== MESSAGE_CONFIG.types.DIRECT) return;
             if (message.delivered) return; // Don't show routes for delivered messages
 
             // Draw the complete route
@@ -816,7 +816,7 @@
         // Draw trails behind messages
         const drawMessageTrails = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_TYPES.DIRECT) return;
+            if (message.type !== MESSAGE_CONFIG.types.DIRECT) return;
             if (!message.trail || message.trail.length < 2) return;
 
             ctx.beginPath();
@@ -888,9 +888,9 @@
 
         const drawMessages = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_TYPES.DIRECT) return;
+            if (message.type !== MESSAGE_CONFIG.types.DIRECT) return;
 
-            const color = MESSAGE_COLOR;
+            const color = MESSAGE_CONFIG.color;
 
             if (message.delivered) {
               // Draw delivery effect (growing pulse)
@@ -952,7 +952,7 @@
         const updateMessages = (deltaTime) => {
           for (let i = messages.length - 1; i >= 0; i--) {
             const message = messages[i];
-            if (message.type !== MESSAGE_TYPES.DIRECT) continue;
+            if (message.type !== MESSAGE_CONFIG.types.DIRECT) continue;
 
             if (message.delivered) {
               message.progress += deltaTime / DISAPPEARANCE_SPEED;
@@ -992,7 +992,7 @@
             const dy = nextPoint.y - message.y;
             const distanceToNext = Math.sqrt(dx * dx + dy * dy);
 
-            const distance = MESSAGE_SPEED * deltaTime;
+            const distance = MESSAGE_CONFIG.speed * deltaTime;
 
             if (distance >= distanceToNext) {
               // Reached next hop
@@ -1057,11 +1057,13 @@
 
         const checkAutoMessages = () => {
           const now = Date.now();
-          if (now - lastAutoMessageTime > nextAutoMessageTime) {
+          if (now - autoSendTimestamp > autoSendDelay) {
             const clients = nodes.filter((n) => n.type === NODE_TYPES.CLIENT);
             if (!clients.length) return;
 
-            for (let i = 0; i < AUTO_MESSAGE_BATCH; i++) {
+            const { delay, delayVariance, batchSize } = MESSAGE_CONFIG.autoSend;
+
+            for (let i = 0; i < batchSize; i++) {
               setTimeout(() => {
                 const source =
                   clients[Math.floor(Math.random() * clients.length)];
@@ -1071,11 +1073,8 @@
               }, i * 120);
             }
 
-            lastAutoMessageTime = now;
-            nextAutoMessageTime = getRandomInt(
-              AUTO_MESSAGE_MIN,
-              AUTO_MESSAGE_MAX,
-            );
+            autoSendTimestamp = now;
+            autoSendDelay = delay + getRandomInt(-delayVariance, delayVariance);
           }
         };
 
