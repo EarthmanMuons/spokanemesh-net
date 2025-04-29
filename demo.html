@@ -118,6 +118,7 @@
         display: flex;
         align-items: center;
         gap: 0.4rem;
+        touch-action: manipulation; /* disables double-tap zoom */
       }
 
       .controls button .icon {
@@ -1227,19 +1228,13 @@
 
           pauseBtn = document.getElementById("toggle-pause");
 
-          document
-            .getElementById("send-message")
-            .addEventListener("click", () => {
-              // Send a mini batch of messages for better visibility when clicked
-              sendMessage();
-              setTimeout(sendMessage, 150);
-              setTimeout(sendMessage, 300);
-            });
-
           BUTTON_CONFIGS.forEach(({ id, action }) => {
             const button = document.getElementById(id);
             if (button && action) {
-              button.addEventListener("click", action);
+              button.addEventListener("pointerdown", (e) => {
+                e.preventDefault(); // prevent unintended focus or zoom
+                action();
+              });
             }
           });
 
