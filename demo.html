@@ -190,71 +190,58 @@
       (() => {
         // --- CONSTANTS ---
 
+        const ROOT_STYLES = getComputedStyle(document.documentElement);
+
         const NODE_TYPES = { CLIENT: "client", REPEATER: "repeater" };
+
+        const DEFAULT_NODE_CONFIGS = {
+          [NODE_TYPES.CLIENT]: {
+            count: 25,
+            mobileCountFactor: 0.6,
+            size: 15,
+            radius: 12,
+            range: 200,
+            rangeVariance: 30,
+            useGrid: false,
+            postPlacement: ensureClientConnectivity,
+            color: ROOT_STYLES.getPropertyValue("--client-color").trim(),
+          },
+          [NODE_TYPES.REPEATER]: {
+            count: 10,
+            mobileCountFactor: 0.4,
+            size: 25,
+            radius: 20,
+            range: 300,
+            rangeVariance: 50,
+            useGrid: true,
+            color: ROOT_STYLES.getPropertyValue("--repeater-color").trim(),
+          },
+        };
+
+        const MAX_PLACEMENT_ATTEMPTS = 30;
+
         const MESSAGE_TYPES = { DIRECT: "direct", FLOOD: "flood" };
-
-        // Node properties - these will be updated based on device
-        let CLIENT_RADIUS = 12;
-        let REPEATER_RADIUS = 20;
-        let CLIENT_SIZE = 15;
-        let REPEATER_SIZE = 25;
-
-        // Base ranges - these will also be scaled
-        let CLIENT_RANGE_BASE = 200;
-        let CLIENT_RANGE_VARIANCE = 30;
-        let REPEATER_RANGE_BASE = 300;
-        let REPEATER_RANGE_VARIANCE = 50;
-
-        // Animation properties
-        const TARGET_FPS = isMobileDevice() ? 40 : 60;
-        const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
-
         const MESSAGE_SIZE = 7;
         const MESSAGE_SPEED = 320; // pixels per second
-        const FLOOD_EXPANSION_SPEED = 160; // pixels per second
-        const DISAPPEARANCE_SPEED = 0.6; // seconds
-
-        const SCALE_SPRING = 0.1; // spring stiffness
-        const SCALE_DAMPING = 0.8; // friction resistance
 
         const AUTO_MESSAGE_MIN = 700; // milliseconds
         const AUTO_MESSAGE_MAX = 1700; // milliseconds
         const AUTO_MESSAGE_BATCH = 4; // messages per interval
 
-        const MAX_MESSAGE_HOPS = 5;
+        const MESSAGE_HOPS_MAX = 5;
 
-        let INITIAL_CLIENTS = 25;
-        let INITIAL_REPEATERS = 10;
+        const MESSAGE_COLOR =
+          ROOT_STYLES.getPropertyValue("--message-color").trim();
 
-        let MIN_NODE_DISTANCE = 70;
+        // Animation properties
+        const TARGET_FPS = isMobileDevice() ? 40 : 60;
+        const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
 
-        const rootStyles = getComputedStyle(document.documentElement);
+        const SCALE_SPRING = 0.1; // spring stiffness
+        const SCALE_DAMPING = 0.8; // friction resistance
 
-        const MESSAGE_COLOR = rootStyles
-          .getPropertyValue("--message-color")
-          .trim();
-
-        const NODE_CONFIGS = {
-          [NODE_TYPES.CLIENT]: {
-            count: INITIAL_CLIENTS,
-            maxAttempts: 30,
-            useGrid: false,
-            postPlacement: ensureClientConnectivity,
-            color: rootStyles.getPropertyValue("--client-color").trim(),
-          },
-          [NODE_TYPES.REPEATER]: {
-            count: INITIAL_REPEATERS,
-            maxAttempts: 10,
-            useGrid: true,
-            color: rootStyles.getPropertyValue("--repeater-color").trim(),
-          },
-        };
-
-        // Add precomputed borderColor
-        for (const key in NODE_CONFIGS) {
-          const config = NODE_CONFIGS[key];
-          config.borderColor = adjustColorBrightness(config.color, -20);
-        }
+        const FLOOD_EXPANSION_SPEED = 160; // pixels per second
+        const DISAPPEARANCE_SPEED = 0.6; // seconds
 
         // --- STATE VARIABLES ---
 
@@ -270,6 +257,7 @@
         let animationFrame = null;
         let pauseBtn;
         let baseWidth, baseHeight;
+        let minNodeDistance;
         let scaleFactor = 1;
         let scaleVelocity = 0;
         let targetScaleFactor = 1;
@@ -320,24 +308,19 @@
         // --- CORE SIMULATION FUNCTIONS ---
 
         function createNode(type) {
-          const isRepeater = type === NODE_TYPES.REPEATER;
-          const radius = isRepeater ? REPEATER_RADIUS : CLIENT_RADIUS;
+          const config = getNodeConfig(type);
+          if (!config) return null;
 
-          const range = isRepeater
-            ? REPEATER_RANGE_BASE +
-              getRandomInt(-REPEATER_RANGE_VARIANCE, REPEATER_RANGE_VARIANCE)
-            : CLIENT_RANGE_BASE +
-              getRandomInt(-CLIENT_RANGE_VARIANCE, CLIENT_RANGE_VARIANCE);
-
-          // Create the node with a random position within the virtual canvas
           const node = {
             id: generateId(),
             type,
-            x: getRandomInt(radius * 2, baseWidth - radius * 2),
-            y: getRandomInt(radius * 2, baseHeight - radius * 2),
-            radius,
-            range,
-            size: isRepeater ? REPEATER_SIZE : CLIENT_SIZE,
+            x: getRandomInt(config.radius * 2, baseWidth - config.radius * 2),
+            y: getRandomInt(config.radius * 2, baseHeight - config.radius * 2),
+            radius: config.radius,
+            range:
+              config.range +
+              getRandomInt(-config.rangeVariance, config.rangeVariance),
+            size: config.size,
           };
 
           return node;
@@ -347,7 +330,7 @@
           return nodes.some(
             (node) =>
               (excludeId === null || node.id !== excludeId) &&
-              getDistance({ x, y }, node) < MIN_NODE_DISTANCE,
+              getDistance({ x, y }, node) < minNodeDistance,
           );
         }
 
@@ -355,7 +338,7 @@
           const config = getNodeConfig(type);
           if (!config) return;
 
-          const { count, maxAttempts, useGrid, postPlacement } = config;
+          const { count, useGrid, postPlacement } = config;
 
           let gridCols, gridRows, cellWidth, cellHeight;
           if (useGrid) {
@@ -371,7 +354,7 @@
             let attempts = 0;
             let validPlacement = false;
 
-            while (!validPlacement && attempts < maxAttempts) {
+            while (!validPlacement && attempts < MAX_PLACEMENT_ATTEMPTS) {
               if (useGrid) {
                 const row = Math.floor(placed / gridCols);
                 const col = placed % gridCols;
@@ -470,7 +453,7 @@
           hopCount,
         ) {
           // Base case: too many hops
-          if (hopCount >= MAX_MESSAGE_HOPS) {
+          if (hopCount >= MESSAGE_HOPS_MAX) {
             return false;
           }
 
@@ -613,10 +596,6 @@
           }
         };
 
-        const addClient = () => addNode(NODE_TYPES.CLIENT);
-
-        const addRepeater = () => addNode(NODE_TYPES.REPEATER);
-
         const sendMessage = (sourceNodeId = null) => {
           // Choose random client if none specified
           if (!sourceNodeId) {
@@ -729,58 +708,43 @@
 
         // Update node sizes based on device
         const updateNodeSizes = () => {
-          // Base node sizes
-          const baseClientRadius = 12;
-          const baseRepeaterRadius = 20;
-          const baseClientSize = 15;
-          const baseRepeaterSize = 25;
-          const baseClientRange = 200;
-          const baseRepeaterRange = 300;
+          const sizeFactor = isMobileDevice() ? 0.5 : 1;
 
-          // Scale factor based on screen size
-          let sizeFactor = 1;
+          NODE_CONFIGS = {};
 
-          if (isMobileDevice()) {
-            sizeFactor = 0.5; // 50% of original
-            INITIAL_CLIENTS = Math.floor(25 * 0.6); // 60% of original
-            INITIAL_REPEATERS = Math.floor(10 * 0.4); // 40% of original
-            MIN_NODE_DISTANCE = 40; // Reduced minimum distance for mobile
-          } else {
-            INITIAL_CLIENTS = 25;
-            INITIAL_REPEATERS = 10;
-            MIN_NODE_DISTANCE = 70;
-          }
+          Object.entries(DEFAULT_NODE_CONFIGS).forEach(([type, def]) => {
+            const countFactor = isMobileDevice() ? def.mobileCountFactor : 1;
 
-          // Update global variables
-          CLIENT_RADIUS = baseClientRadius * sizeFactor;
-          CLIENT_SIZE = baseClientSize * sizeFactor;
-          REPEATER_RADIUS = baseRepeaterRadius * sizeFactor;
-          REPEATER_SIZE = baseRepeaterSize * sizeFactor;
+            NODE_CONFIGS[type] = {
+              count: Math.floor(def.count * countFactor),
+              size: def.size * sizeFactor,
+              radius: def.radius * sizeFactor,
+              range: def.range * sizeFactor,
+              rangeVariance: def.rangeVariance * sizeFactor,
+              useGrid: def.useGrid,
+              postPlacement: def.postPlacement,
+              color: def.color,
+              borderColor: adjustColorBrightness(def.color, -20),
+            };
+          });
 
-          // Also scale ranges for mobile
-          CLIENT_RANGE_BASE = baseClientRange * sizeFactor;
-          REPEATER_RANGE_BASE = baseRepeaterRange * sizeFactor;
-          CLIENT_RANGE_VARIANCE = 30 * sizeFactor;
-          REPEATER_RANGE_VARIANCE = 50 * sizeFactor;
+          // Adjust minimum node distance
+          minNodeDistance = isMobileDevice() ? 40 : 70;
         };
 
-        // Initialize the network with better node placement for connectivity
         const initNetwork = () => {
-          resizeCanvas();
-
           // Reset state
           nodes = [];
           messages = [];
           floodRings = [];
           processedFloodIds = new Set();
 
-          // Place nodes with good distribution
+          // Place well-distributed repeaters first
           placeNodes(NODE_TYPES.REPEATER);
           placeNodes(NODE_TYPES.CLIENT);
 
-          // Send initial messages to demonstrate routing
+          // Send a batch of initial messages
           setTimeout(() => {
-            // Send a batch of initial messages
             for (let i = 0; i < 5; i++) {
               setTimeout(() => {
                 if (i % 20 === 0) {
@@ -1168,24 +1132,22 @@
           canvas.style.width = newWidth + "px";
           canvas.style.height = newHeight + "px";
 
-          ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transforms first
-          ctx.scale(dpr, dpr); // ...then apply devicePixelRatio scaling
+          ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transforms
+          ctx.scale(dpr, dpr);
 
           if (!initialLayoutDone) {
             baseWidth = newWidth;
             baseHeight = newHeight;
-            updateNodeSizes();
             initialLayoutDone = true;
-            return;
-          }
-
-          const widthScaleFactor = newWidth / baseWidth;
-          const heightScaleFactor = newHeight / baseHeight;
-
-          if (newWidth / newHeight > baseWidth / baseHeight) {
-            targetScaleFactor = heightScaleFactor;
           } else {
-            targetScaleFactor = widthScaleFactor;
+            const widthScaleFactor = newWidth / baseWidth;
+            const heightScaleFactor = newHeight / baseHeight;
+
+            if (newWidth / newHeight > baseWidth / baseHeight) {
+              targetScaleFactor = heightScaleFactor;
+            } else {
+              targetScaleFactor = widthScaleFactor;
+            }
           }
         };
 
@@ -1199,20 +1161,13 @@
               resizeCanvas();
               updateNodeSizes();
 
-              // Update existing node sizes after orientation/resize
-              if (nodes.length > 0) {
-                nodes.forEach((node) => {
-                  node.size =
-                    node.type === NODE_TYPES.REPEATER
-                      ? REPEATER_SIZE
-                      : CLIENT_SIZE;
-                  node.radius =
-                    node.type === NODE_TYPES.REPEATER
-                      ? REPEATER_RADIUS
-                      : CLIENT_RADIUS;
-                });
-              }
-            }, 150); // Debounce delay in ms
+              nodes.forEach((node) => {
+                const config = getNodeConfig(node.type);
+                if (!config) return;
+                node.size = config.size;
+                node.radius = config.radius;
+              });
+            }, 150); // Debounce delay in milliseconds
           });
 
           pauseBtn = document.getElementById("toggle-pause");
@@ -1231,10 +1186,10 @@
             .addEventListener("click", () => sendFlood());
           document
             .getElementById("add-client")
-            .addEventListener("click", addClient);
+            .addEventListener("click", () => addNode(NODE_TYPES.CLIENT));
           document
             .getElementById("add-repeater")
-            .addEventListener("click", addRepeater);
+            .addEventListener("click", () => addNode(NODE_TYPES.REPEATER));
           pauseBtn.addEventListener("click", togglePause);
           document
             .getElementById("reset")
@@ -1291,7 +1246,9 @@
         const init = () => {
           canvas = document.getElementById("mesh-canvas");
           ctx = canvas.getContext("2d");
+
           resizeCanvas();
+          updateNodeSizes();
           initNetwork();
           setupEventListeners();
           animate(performance.now());
