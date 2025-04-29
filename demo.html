@@ -303,6 +303,7 @@
         let scaleVelocity = 0;
         let targetScaleFactor = 1;
         let initialLayoutDone = false;
+        let initialBatchSent = false;
         let lastFrameTime = 0;
         let autoSendTimestamp = Date.now();
         let autoSendDelay = MESSAGE_CONFIG.autoSend.delay;
@@ -775,24 +776,11 @@
           messages = [];
           floodRings = [];
           processedFloodIds = new Set();
+          initialBatchSent = false;
 
           // Place well-distributed repeaters first
           placeNodes(NODE_TYPES.REPEATER);
           placeNodes(NODE_TYPES.CLIENT);
-
-          // Send a batch of initial messages
-          setTimeout(() => {
-            for (let i = 0; i < 5; i++) {
-              setTimeout(() => {
-                if (i % 20 === 0) {
-                  // 5% chance for flood (1 out of 20)
-                  sendFlood();
-                } else {
-                  sendMessage();
-                }
-              }, i * 300);
-            }
-          }, 500);
         };
 
         // --- DRAWING FUNCTIONS ---
@@ -1094,7 +1082,7 @@
 
         const checkAutoMessages = () => {
           const now = Date.now();
-          if (now - autoSendTimestamp > autoSendDelay) {
+          if (!initialBatchSent || now - autoSendTimestamp > autoSendDelay) {
             const clients = nodes.filter((n) => n.type === NODE_TYPES.CLIENT);
             if (!clients.length) return;
 
@@ -1112,6 +1100,7 @@
 
             autoSendTimestamp = now;
             autoSendDelay = delay + getRandomInt(-delayVariance, delayVariance);
+            if (!initialBatchSent) initialBatchSent = true;
           }
         };
 
