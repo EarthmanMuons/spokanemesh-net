@@ -1117,15 +1117,6 @@
 
         // --- UI / EVENT FUNCTIONS ---
 
-        const isInViewport = (element) => {
-          const rect = element.getBoundingClientRect();
-          return (
-            rect.top <=
-              (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.bottom >= 0
-          );
-        };
-
         const isPortrait = () => {
           return window.matchMedia("(orientation: portrait)").matches;
         };
@@ -1163,18 +1154,6 @@
           animationRunning = !animationRunning;
           updatePauseButton();
           if (animationRunning) animate(performance.now());
-        };
-
-        const toggleAnimationOnVisibility = () => {
-          const visible = isInViewport(canvas);
-          if (visible && !animationRunning) {
-            animationRunning = true;
-            animate(performance.now());
-            updatePauseButton();
-          } else if (!visible && animationRunning) {
-            animationRunning = false;
-            cancelAnimationFrame(animationFrame);
-          }
         };
 
         // Resize canvas to match container with scaling
@@ -1238,25 +1217,33 @@
             }
           });
 
-          // Pause animation when not in viewport
-          window.addEventListener("scroll", toggleAnimationOnVisibility, {
-            passive: true,
-          });
-          window.addEventListener("resize", toggleAnimationOnVisibility, {
-            passive: true,
-          });
+          // Pause/resume animation on hero section visibility change
+          if ("IntersectionObserver" in window) {
+            const observer = new IntersectionObserver(
+              (entries) => {
+                entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                    if (!animationRunning) {
+                      animationRunning = true;
+                      animate(performance.now());
+                      updatePauseButton();
+                    }
+                  } else {
+                    if (animationRunning) {
+                      animationRunning = false;
+                      cancelAnimationFrame(animationFrame);
+                    }
+                  }
+                });
+              },
+              {
+                threshold: 0.01,
+              },
+            );
 
-          // Pause/resume on visibility change
-          document.addEventListener("visibilitychange", () => {
-            if (document.hidden) {
-              animationRunning = false;
-              cancelAnimationFrame(animationFrame);
-            } else if (isInViewport(canvas)) {
-              animationRunning = true;
-              animate(performance.now());
-              updatePauseButton();
-            }
-          });
+            const target = document.querySelector(".hero-section");
+            observer.observe(target);
+          }
         };
 
         // Animation loop
