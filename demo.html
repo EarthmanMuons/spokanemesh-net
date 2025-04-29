@@ -120,6 +120,13 @@
         gap: 0.4rem;
       }
 
+      .controls button .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
       .controls button:hover {
         background-color: var(--button-hover);
       }
@@ -236,7 +243,7 @@
         const BUTTON_CONFIGS = [
           {
             id: "send-message",
-            icon: "➤",
+            icon: "→",
             label: "Send Message",
             action: () => {
               sendMessage();
@@ -246,19 +253,19 @@
           },
           {
             id: "send-flood",
-            icon: "⊕",
+            icon: "❉",
             label: "Send Flood",
             action: () => sendFlood(),
           },
           {
             id: "add-client",
-            icon: "+",
+            icon: "＋",
             label: "Add Client",
             action: () => addNode(NODE_TYPES.CLIENT),
           },
           {
             id: "add-repeater",
-            icon: "⇶",
+            icon: "⊕",
             label: "Add Repeater",
             action: () => addNode(NODE_TYPES.REPEATER),
           },
