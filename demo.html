@@ -325,10 +325,8 @@
           return Math.random().toString(36).substr(2, 9);
         }
 
-        function getDistance(a, b) {
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          return Math.sqrt(dx * dx + dy * dy);
+        function getDistance({ x: x1, y: y1 }, { x: x2, y: y2 }) {
+          return Math.hypot(x2 - x1, y2 - y1);
         }
 
         function getRandomInt(min, max) {
@@ -351,16 +349,16 @@
           const config = getNodeConfig(type);
           if (!config) return null;
 
+          const { radius, range, rangeVariance, size } = config;
+
           const node = {
             id: generateId(),
             type,
-            x: getRandomInt(config.radius * 2, baseWidth - config.radius * 2),
-            y: getRandomInt(config.radius * 2, baseHeight - config.radius * 2),
-            radius: config.radius,
-            range:
-              config.range +
-              getRandomInt(-config.rangeVariance, config.rangeVariance),
-            size: config.size,
+            x: getRandomInt(radius * 2, baseWidth - radius * 2),
+            y: getRandomInt(radius * 2, baseHeight - radius * 2),
+            radius,
+            range: range + getRandomInt(-rangeVariance, rangeVariance),
+            size,
           };
 
           return node;
@@ -756,14 +754,12 @@
             const countFactor = isMobileDevice() ? def.mobileCountFactor : 1;
 
             NODE_CONFIGS[type] = {
+              ...def,
               count: Math.floor(def.count * countFactor),
               size: def.size * sizeFactor,
               radius: def.radius * sizeFactor,
               range: def.range * sizeFactor,
               rangeVariance: def.rangeVariance * sizeFactor,
-              useGrid: def.useGrid,
-              postPlacement: def.postPlacement,
-              color: def.color,
               borderColor: adjustColorBrightness(def.color, -20),
             };
           });
@@ -888,7 +884,7 @@
           });
         };
 
-        const drawHexagon = (x, y, size, fillColor, borderColor) => {
+        const drawHexagon = ({ x, y, size, fillColor, borderColor }) => {
           const numberOfSides = 6;
           const a = (Math.PI * 2) / numberOfSides;
 
@@ -916,13 +912,13 @@
             const config = getNodeConfig(node.type);
             if (!config) return;
 
-            drawHexagon(
-              node.x,
-              node.y,
-              node.size,
-              config.color,
-              config.borderColor,
-            );
+            drawHexagon({
+              x: node.x,
+              y: node.y,
+              size: node.size,
+              fillColor: config.color,
+              borderColor: config.borderColor,
+            });
           });
         };
 
@@ -1302,12 +1298,13 @@
             document.getElementById("controls-container");
 
           BUTTON_CONFIGS.forEach(({ id, icon, label }) => {
+            const [iconSymbol, labelText] = [
+              typeof icon === "object" ? icon.pause : icon,
+              typeof label === "object" ? label.pause : label,
+            ];
+
             const button = document.createElement("button");
             button.id = id;
-
-            const iconSymbol = typeof icon === "object" ? icon.pause : icon;
-            const labelText = typeof label === "object" ? label.pause : label;
-
             button.innerHTML = `<span class="icon">${iconSymbol}</span> ${labelText}`;
             controlsContainer.appendChild(button);
           });
