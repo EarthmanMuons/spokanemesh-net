@@ -1093,45 +1093,40 @@
           }
         };
 
-        const scheduleAutoMessages = () => {
+        function maybeSendAutoMessages() {
+          const now = Date.now();
+          if (now - autoSendTimestamp <= autoSendDelay) return;
+
+          const clients = nodes.filter((n) => n.type === NODE_TYPES.CLIENT);
+          if (!clients.length) return;
+
+          const { delay, delayVariance, batchSize } = messageConfig.autoSend;
+          for (let i = 0; i < batchSize; i++) {
+            setTimeout(() => {
+              const source =
+                clients[Math.floor(Math.random() * clients.length)];
+              Math.random() < 0.05
+                ? sendFlood(source.id)
+                : sendMessage(source.id);
+            }, i * 120);
+          }
+
+          autoSendTimestamp = now;
+          autoSendDelay = delay + getRandomInt(-delayVariance, delayVariance);
+        }
+
+        function scheduleAutoMessages() {
           const idleCallback =
             window.requestIdleCallback ||
             function (cb) {
               return setTimeout(() => cb({ timeRemaining: () => 0 }), 200);
             };
 
-          idleCallback((deadline) => {
-            if (nodes.length && animationRunning) {
-              const now = Date.now();
-              if (now - autoSendTimestamp > autoSendDelay) {
-                const clients = nodes.filter(
-                  (n) => n.type === NODE_TYPES.CLIENT,
-                );
-                if (clients.length) {
-                  const { delay, delayVariance, batchSize } =
-                    messageConfig.autoSend;
-
-                  for (let i = 0; i < batchSize; i++) {
-                    setTimeout(() => {
-                      const source =
-                        clients[Math.floor(Math.random() * clients.length)];
-                      Math.random() < 0.05
-                        ? sendFlood(source.id)
-                        : sendMessage(source.id);
-                    }, i * 120);
-                  }
-
-                  autoSendTimestamp = now;
-                  autoSendDelay =
-                    delay + getRandomInt(-delayVariance, delayVariance);
-                }
-              }
-            }
-
-            // Schedule the next idle callback
-            scheduleAutoMessages();
+          idleCallback(() => {
+            if (nodes.length && animationRunning) maybeSendAutoMessages();
+            scheduleAutoMessages(); // schedule the next idle callback
           });
-        };
+        }
 
         // --- UI / EVENT FUNCTIONS ---
 
