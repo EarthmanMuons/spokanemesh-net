@@ -637,10 +637,6 @@
           }
 
           nodes.push(node);
-
-          if (type === NODE_TYPES.CLIENT) {
-            setTimeout(() => sendMessage(node.id), 300);
-          }
         };
 
         const sendMessage = (sourceNodeId = null) => {
