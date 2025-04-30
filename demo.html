@@ -1150,10 +1150,6 @@
 
         // --- UI / EVENT FUNCTIONS ---
 
-        const isPortrait = () => {
-          return window.matchMedia("(orientation: portrait)").matches;
-        };
-
         // Resize canvas to match container with scaling
         const resizeCanvas = () => {
           const container = canvas.parentElement;
@@ -1184,7 +1180,7 @@
           }
         };
 
-        const setupEventListeners = () => {
+        function setupResizeListener() {
           window.addEventListener("resize", () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
@@ -1200,46 +1196,49 @@
                 node.size = config.size;
                 node.radius = config.radius;
               });
-            }, 150); // Debounce delay in milliseconds
+            }, 150);
           });
+        }
 
+        function setupVisibilityObserver() {
+          if (!("IntersectionObserver" in window)) return;
+
+          const observer = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  if (!animationRunning) {
+                    animationRunning = true;
+                    animate(performance.now());
+                  }
+                } else {
+                  if (animationRunning) {
+                    animationRunning = false;
+                    cancelAnimationFrame(animationFrame);
+                  }
+                }
+              });
+            },
+            { threshold: 0.01 },
+          );
+
+          const target = document.querySelector(".hero-section");
+          observer.observe(target);
+        }
+
+        function setupButtonListeners() {
           BUTTON_CONFIGS.forEach(({ id, action }) => {
             const button = document.getElementById(id);
             if (button && action) {
               button.addEventListener("pointerdown", (e) => {
-                e.preventDefault(); // prevent unintended focus or zoom
+                e.preventDefault();
                 action();
               });
             }
           });
+        }
 
-          // Pause/resume animation on hero section visibility change
-          if ("IntersectionObserver" in window) {
-            const observer = new IntersectionObserver(
-              (entries) => {
-                entries.forEach((entry) => {
-                  if (entry.isIntersecting) {
-                    if (!animationRunning) {
-                      animationRunning = true;
-                      animate(performance.now());
-                    }
-                  } else {
-                    if (animationRunning) {
-                      animationRunning = false;
-                      cancelAnimationFrame(animationFrame);
-                    }
-                  }
-                });
-              },
-              {
-                threshold: 0.01,
-              },
-            );
-
-            const target = document.querySelector(".hero-section");
-            observer.observe(target);
-          }
-
+        function setupCanvasHoverListener() {
           canvas.addEventListener("pointermove", (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) / scaleFactor;
@@ -1248,14 +1247,16 @@
             hoveredNode = nodes.find((n) => getDistance(n, { x, y }) <= n.size);
 
             if (hoveredNode && !animationRunning) {
-              draw(); // force one frame for immediate highlight
+              draw(); // force one frame
             }
           });
 
           canvas.addEventListener("pointerleave", () => {
             hoveredNode = null;
           });
+        }
 
+        function setupCanvasClickListener() {
           canvas.addEventListener("pointerdown", (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) / scaleFactor;
@@ -1271,7 +1272,15 @@
 
             hoveredNode = clickedNode;
           });
-        };
+        }
+
+        function setupEventListeners() {
+          setupResizeListener();
+          setupVisibilityObserver();
+          setupButtonListeners();
+          setupCanvasHoverListener();
+          setupCanvasClickListener();
+        }
 
         // Animation loop
         const animate = (timestamp) => {
