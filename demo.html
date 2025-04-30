@@ -1306,18 +1306,18 @@
 
           const cpuStart = performance.now(); // START timing
 
-          const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
+          //const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
           lastFrameTime = timestamp;
 
           // Smooth, springy zoom animation
-          const scaleDelta = targetScaleFactor - scaleFactor;
-          scaleVelocity += scaleDelta * SCALE_SPRING;
-          scaleVelocity *= SCALE_DAMPING;
-          scaleFactor += scaleVelocity;
+          //const scaleDelta = targetScaleFactor - scaleFactor;
+          //scaleVelocity += scaleDelta * SCALE_SPRING;
+          //scaleVelocity *= SCALE_DAMPING;
+          //scaleFactor += scaleVelocity;
 
-          updateMessages(deltaTime);
-          updateFloods(deltaTime);
-          draw();
+          //updateMessages(deltaTime);
+          //updateFloods(deltaTime);
+          //draw();
 
           const cpuDuration = performance.now() - cpuStart; // END timing
           updateFPS(timestamp, cpuDuration);
