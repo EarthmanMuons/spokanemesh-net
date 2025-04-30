@@ -320,7 +320,6 @@
         let floodRings = [];
         let floodRingPool = [];
         let processedFloodIds = new Set();
-        let activeFloodIds = new Set();
         let hoveredNode = null;
 
         let nodeConfigs;
@@ -625,7 +624,6 @@
             expandSpeed: FLOOD_EXPANSION_SPEED,
             opacity: 0.7,
           });
-          activeFloodIds.add(floodId);
 
           return ring;
         }
@@ -779,7 +777,6 @@
           messagePool = [];
           floodRingPool = [];
           processedFloodIds = new Set();
-          activeFloodIds = new Set();
           hoveredNode = null;
 
           // Use current node config counts unless overrides are provided
@@ -1099,7 +1096,6 @@
                     processedFloodIds.delete(key);
                   }
                 }
-                activeFloodIds.delete(floodId);
               }
             }
           }
