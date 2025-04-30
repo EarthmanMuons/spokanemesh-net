@@ -316,6 +316,7 @@
 
         let nodes = [];
         let messages = [];
+        let messagePool = [];
         let floodRings = [];
         let floodRingPool = [];
         let processedFloodIds = new Set();
@@ -554,7 +555,23 @@
             return null;
           }
 
-          return {
+          let msg = messagePool.pop() || {
+            id: "",
+            type: messageConfig.types.DIRECT,
+            sourceId: "",
+            targetId: "",
+            x: 0,
+            y: 0,
+            size: 0,
+            route: [],
+            currentHopIndex: 0,
+            delivered: false,
+            progress: 0,
+            trail: [],
+            trail_max_length: 10,
+          };
+
+          Object.assign(msg, {
             id: generateId(),
             type: messageConfig.types.DIRECT,
             sourceId: sourceNode.id,
@@ -562,13 +579,14 @@
             x: sourceNode.x,
             y: sourceNode.y,
             size: messageConfig.size,
-            route: route,
+            route,
             currentHopIndex: 0,
             delivered: false,
-            progress: 0, // Used for drawing a trail
-            trail: [], // Store previous positions for trail effect
-            trail_max_length: 10, // Max number of positions to store
-          };
+            progress: 0,
+            trail: [],
+          });
+
+          return msg;
         }
 
         // Create a flood ring (visualization for flood messages)
@@ -1020,6 +1038,7 @@
             if (message.delivered) {
               if (updateDeliveredMessage(message, deltaTime)) {
                 messages.splice(i, 1);
+                messagePool.push(message); // recycle
               }
             } else {
               advanceMessage(message, deltaTime);
@@ -1053,9 +1072,8 @@
             nodes.forEach((node) => checkFloodHit(ring, node));
 
             if (ring.radius >= ring.maxRadius) {
-              // Remove the ring
               const expiredRing = floodRings.splice(i, 1)[0];
-              floodRingPool.push(expiredRing);
+              floodRingPool.push(expiredRing); // recycle
 
               // If this was the last ring for its floodId, clean up
               const floodId = expiredRing.floodId;
