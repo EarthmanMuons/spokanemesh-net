@@ -332,6 +332,7 @@
         let animationRunning = true;
         let initialLayoutDone = false;
         let animationFrame = null;
+        let hoverFrame = null;
         let lastFrameTime = 0;
 
         let scaleFactor = 1;
@@ -1249,21 +1250,29 @@
         }
 
         function setupCanvasHoverListener() {
-          canvas.addEventListener("pointermove", (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / scaleFactor;
-            const y = (e.clientY - rect.top) / scaleFactor;
+          canvas.addEventListener(
+            "pointermove",
+            (e) => {
+              if (hoverFrame) return;
 
-            hoveredNode = nodes.find((n) => getDistance(n, { x, y }) <= n.size);
+              hoverFrame = requestAnimationFrame(() => {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / scaleFactor;
+                const y = (e.clientY - rect.top) / scaleFactor;
 
-            if (hoveredNode && !animationRunning) {
-              draw(); // force one frame
-            }
-          });
+                hoveredNode = nodes.find(
+                  (n) => getDistance(n, { x, y }) <= n.size,
+                );
 
-          canvas.addEventListener("pointerleave", () => {
-            hoveredNode = null;
-          });
+                if (hoveredNode && !animationRunning) {
+                  draw(); // force one frame
+                }
+
+                hoverFrame = null;
+              });
+            },
+            { passive: true },
+          );
         }
 
         function setupCanvasClickListener() {
