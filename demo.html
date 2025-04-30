@@ -222,7 +222,6 @@
             range: 200,
             rangeVariance: 30,
             useGrid: false,
-            postPlacement: ensureClientConnectivity,
             color: ROOT_STYLES.getPropertyValue("--client-color").trim(),
           },
           [NODE_TYPES.REPEATER]: {
@@ -299,7 +298,7 @@
 
         const FLOOD_COLOR =
           ROOT_STYLES.getPropertyValue("--flood-color").trim();
-        const FLOOD_EXPANSION_SPEED = isMobileDevice() ? 100 : 160; // pixels per second
+        const FLOOD_EXPANSION_SPEED = isMobileDevice() ? 120 : 180; // pixels per second
         const DISAPPEARANCE_SPEED = 0.6; // seconds
 
         const IS_DEBUG_MODE = window.location.search.includes("debug");
@@ -404,63 +403,60 @@
           return node;
         }
 
-        function isTooCloseToOtherNodes(x, y, excludeId = null) {
-          return nodes.some(
-            (node) =>
-              (excludeId === null || node.id !== excludeId) &&
-              getDistance({ x, y }, node) < minNodeDistance,
-          );
+        function isTooClose(x, y) {
+          return nodes.some((n) => getDistance({ x, y }, n) < minNodeDistance);
+        }
+
+        function placeNodeRandomly(node, useGrid, col, row, cellW, cellH) {
+          for (let i = 0; i < PLACEMENT_ATTEMPTS_MAX; i++) {
+            if (useGrid) {
+              node.x = col * cellW + cellW * (0.25 + Math.random() * 0.5);
+              node.y = row * cellH + cellH * (0.25 + Math.random() * 0.5);
+            } else {
+              node.x = getRandomInt(
+                node.radius * 2,
+                baseWidth - node.radius * 2,
+              );
+              node.y = getRandomInt(
+                node.radius * 2,
+                baseHeight - node.radius * 2,
+              );
+            }
+
+            if (!isTooClose(node.x, node.y)) return true;
+          }
+          return false;
         }
 
         const placeNodes = (type) => {
           const config = getNodeConfig(type);
           if (!config) return;
 
-          const { count, useGrid, postPlacement } = config;
+          const { count, useGrid } = config;
 
-          let gridCols, gridRows, cellWidth, cellHeight;
-          if (useGrid) {
-            gridCols = Math.ceil(Math.sqrt(count));
-            gridRows = Math.ceil(count / gridCols);
-            cellWidth = baseWidth / gridCols;
-            cellHeight = baseHeight / gridRows;
-          }
+          const gridCols = useGrid ? Math.ceil(Math.sqrt(count)) : 0;
+          const gridRows = useGrid ? Math.ceil(count / gridCols) : 0;
+          const cellWidth = useGrid ? baseWidth / gridCols : 0;
+          const cellHeight = useGrid ? baseHeight / gridRows : 0;
 
           let placed = 0;
           for (let i = 0; i < count; i++) {
             const node = createNode(type);
-            let attempts = 0;
-            let validPlacement = false;
+            const row = useGrid ? Math.floor(placed / gridCols) : null;
+            const col = useGrid ? placed % gridCols : null;
 
-            while (!validPlacement && attempts < PLACEMENT_ATTEMPTS_MAX) {
-              if (useGrid) {
-                const row = Math.floor(placed / gridCols);
-                const col = placed % gridCols;
-                node.x =
-                  col * cellWidth + cellWidth * (0.25 + Math.random() * 0.5);
-                node.y =
-                  row * cellHeight + cellHeight * (0.25 + Math.random() * 0.5);
-              } else {
-                node.x = getRandomInt(
-                  node.radius * 2,
-                  baseWidth - node.radius * 2,
-                );
-                node.y = getRandomInt(
-                  node.radius * 2,
-                  baseHeight - node.radius * 2,
-                );
-              }
-
-              validPlacement = !isTooCloseToOtherNodes(node.x, node.y);
-              attempts++;
+            const success = placeNodeRandomly(
+              node,
+              useGrid,
+              col,
+              row,
+              cellWidth,
+              cellHeight,
+            );
+            if (success) {
+              nodes.push(node);
+              placed++;
             }
-
-            nodes.push(node);
-            placed++;
-          }
-
-          if (postPlacement) {
-            postPlacement();
           }
         };
 
@@ -471,57 +467,6 @@
             return null;
           }
           return config;
-        }
-
-        // Ensure every client can communicate with at least one repeater
-        function ensureClientConnectivity() {
-          const repeaters = nodes.filter(
-            (node) => node.type === NODE_TYPES.REPEATER,
-          );
-
-          nodes.forEach((node) => {
-            if (node.type === NODE_TYPES.CLIENT) {
-              // Check if this client can reach any repeater
-              const canReachRepeater = repeaters.some(
-                (repeater) =>
-                  getDistance(node, repeater) <=
-                  Math.max(node.range, repeater.range),
-              );
-
-              if (!canReachRepeater && repeaters.length > 0) {
-                // Find the closest repeater
-                repeaters.sort(
-                  (a, b) => getDistance(node, a) - getDistance(node, b),
-                );
-                const closest = repeaters[0];
-
-                // Calculate a position that's within range but not too close
-                const distance = getDistance(node, closest);
-                const angle = Math.atan2(
-                  node.y - closest.y,
-                  node.x - closest.x,
-                );
-                const targetDistance =
-                  Math.min(closest.range, node.range) * 0.9; // 90% of the smaller range
-
-                let newX = closest.x + Math.cos(angle) * targetDistance;
-                let newY = closest.y + Math.sin(angle) * targetDistance;
-
-                // Make sure it's within canvas bounds
-                newX = Math.max(
-                  node.radius * 2,
-                  Math.min(newX, baseWidth - node.radius * 2),
-                );
-                newY = Math.max(
-                  node.radius * 2,
-                  Math.min(newY, baseHeight - node.radius * 2),
-                );
-
-                node.x = newX;
-                node.y = newY;
-              }
-            }
-          });
         }
 
         function getNeighbors(node) {
@@ -640,20 +585,8 @@
 
         const addNode = (type) => {
           const node = createNode(type);
-          let validPlacement = false;
-          let attempts = 0;
-
-          while (!validPlacement && attempts < 30) {
-            node.x = getRandomInt(node.radius * 2, baseWidth - node.radius * 2);
-            node.y = getRandomInt(
-              node.radius * 2,
-              baseHeight - node.radius * 2,
-            );
-            validPlacement = !isTooCloseToOtherNodes(node.x, node.y);
-            attempts++;
-          }
-
-          nodes.push(node);
+          const success = placeNodeRandomly(node, false); // no grid for manual adds
+          if (success) nodes.push(node);
         };
 
         function randomClient(excludeId = null) {
