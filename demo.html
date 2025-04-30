@@ -1273,6 +1273,14 @@
             },
             { passive: true },
           );
+
+          canvas.addEventListener(
+            "pointerleave",
+            () => {
+              hoveredNode = null;
+            },
+            { passive: true },
+          );
         }
 
         function setupCanvasClickListener() {
