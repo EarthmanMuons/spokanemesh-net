@@ -792,6 +792,8 @@
           // Place repeaters first to give them the best grid spacing
           placeNodes(NODE_TYPES.REPEATER);
           placeNodes(NODE_TYPES.CLIENT);
+
+          autoSendDelay = 0;
         }
 
         // --- DRAWING FUNCTIONS ---
@@ -1205,7 +1207,7 @@
               }
 
               resizeCanvas();
-            }, 150);
+            }, 250);
           });
         }
 
