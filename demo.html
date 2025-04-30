@@ -734,6 +734,7 @@
 
         const resetNetwork = () => {
           cancelAnimationFrame(animationFrame);
+          applyScaling();
           initNetwork();
           animate(performance.now());
         };
@@ -767,18 +768,31 @@
           };
         };
 
-        const initNetwork = () => {
-          // Reset state
+        function initNetwork(clientCount = null, repeaterCount = null) {
+          // Reset simulation state
           nodes = [];
           messages = [];
           floodRings = [];
+          messagePool = [];
+          floodRingPool = [];
           processedFloodIds = new Set();
           activeFloodIds = new Set();
+          hoveredNode = null;
 
-          // Place well-distributed repeaters first
+          // Use current node config counts unless overrides are provided
+          const clientCfg = getNodeConfig(NODE_TYPES.CLIENT);
+          const repeaterCfg = getNodeConfig(NODE_TYPES.REPEATER);
+
+          const clientCountFinal = clientCount ?? clientCfg.count;
+          const repeaterCountFinal = repeaterCount ?? repeaterCfg.count;
+
+          clientCfg.count = clientCountFinal;
+          repeaterCfg.count = repeaterCountFinal;
+
+          // Place repeaters first to give them the best grid spacing
           placeNodes(NODE_TYPES.REPEATER);
           placeNodes(NODE_TYPES.CLIENT);
-        };
+        }
 
         // --- DRAWING FUNCTIONS ---
 
@@ -958,19 +972,12 @@
           const offsetX = (scaledWidth - baseWidth * scaleFactor) / 2;
           const offsetY = (scaledHeight - baseHeight * scaleFactor) / 2;
 
-          ctx.save();
-          ctx.scale(scaleFactor, scaleFactor);
-          ctx.translate(Math.max(0, offsetX), Math.max(0, offsetY));
-
           drawNodeRanges();
           drawFloodRings();
           drawMessageRoutes();
           drawMessageTrails();
           drawNodes();
           drawMessages();
-
-          // Restore original scaling
-          ctx.restore();
         };
 
         // --- SIMULATION UPDATE FUNCTIONS ---
@@ -1166,14 +1173,26 @@
             baseHeight = newHeight;
             initialLayoutDone = true;
           } else {
-            const widthScaleFactor = newWidth / baseWidth;
-            const heightScaleFactor = newHeight / baseHeight;
+            const clientCount = nodes.filter(
+              (n) => n.type === NODE_TYPES.CLIENT,
+            ).length;
+            const repeaterCount = nodes.filter(
+              (n) => n.type === NODE_TYPES.REPEATER,
+            ).length;
 
-            if (newWidth / newHeight > baseWidth / baseHeight) {
-              targetScaleFactor = heightScaleFactor;
-            } else {
-              targetScaleFactor = widthScaleFactor;
-            }
+            // Pause animation and reset cleanly
+            animationRunning = false;
+            cancelAnimationFrame(animationFrame);
+
+            baseWidth = newWidth;
+            baseHeight = newHeight;
+
+            // Reinitialize with current node counts
+            applyScaling();
+            initNetwork(clientCount, repeaterCount);
+
+            animationRunning = true;
+            animate(performance.now());
           }
         };
 
@@ -1184,15 +1203,8 @@
               if (window.devicePixelRatio !== dpr) {
                 dpr = window.devicePixelRatio || 1;
               }
-              resizeCanvas();
-              applyScaling();
 
-              nodes.forEach((node) => {
-                const config = getNodeConfig(node.type);
-                if (!config) return;
-                node.size = config.size;
-                node.radius = config.radius;
-              });
+              resizeCanvas();
             }, 150);
           });
         }
@@ -1292,12 +1304,6 @@
 
           const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
           lastFrameTime = timestamp;
-
-          // Smooth, springy zoom animation
-          const scaleDelta = targetScaleFactor - scaleFactor;
-          scaleVelocity += scaleDelta * SCALE_SPRING;
-          scaleVelocity *= SCALE_DAMPING;
-          scaleFactor += scaleVelocity;
 
           updateMessages(deltaTime);
           updateFloods(deltaTime);
