@@ -510,96 +510,79 @@
           });
         }
 
-        function findPathThroughRepeaters(
-          route,
-          currentNode,
-          targetNode,
-          hopCount,
-        ) {
-          // Base case: too many hops
-          if (hopCount >= messageConfig.maxHops) {
-            return false;
-          }
-
-          // Check if current node can reach target directly
-          if (getDistance(currentNode, targetNode) <= currentNode.range) {
-            route.push({ id: targetNode.id, x: targetNode.x, y: targetNode.y });
-            return true;
-          }
-
-          // Get all repeaters in range of current node
-          const repeaters = nodes.filter(
-            (node) =>
-              node.type === NODE_TYPES.REPEATER &&
-              node.id !== currentNode.id &&
-              getDistance(currentNode, node) <= currentNode.range &&
-              !route.some((hop) => hop.id === node.id), // Avoid loops
+        function getNeighbors(node) {
+          return nodes.filter(
+            (other) =>
+              other.id !== node.id && getDistance(node, other) <= node.range,
           );
-
-          // Sort repeaters by distance to target
-          repeaters.sort(
-            (a, b) => getDistance(a, targetNode) - getDistance(b, targetNode),
-          );
-
-          // Try each repeater
-          for (const repeater of repeaters) {
-            route.push({ id: repeater.id, x: repeater.x, y: repeater.y });
-
-            if (
-              findPathThroughRepeaters(
-                route,
-                repeater,
-                targetNode,
-                hopCount + 1,
-              )
-            ) {
-              return true;
-            }
-
-            // If this path didn't work, backtrack
-            route.pop();
-          }
-
-          return false;
         }
 
-        // Find a route from source to target through repeaters if needed
+        /**
+         * Performs a breadth-first search to find the shortest valid route
+         * from the source node to the target node, considering wireless range.
+         *
+         * - Direct client-to-client hops are allowed.
+         * - Multi-hop paths (3+ nodes) must use only repeaters as intermediate hops.
+         * - Returns a path as an array of node { id, x, y } objects, always including the source.
+         * - If no valid route is found, returns a single-element array with only the source.
+         *
+         * @param {Object} sourceNode - The starting node.
+         * @param {Object} targetNode - The destination node.
+         * @returns {Array} Array of hops (each with id, x, y).
+         */
         function findRoute(sourceNode, targetNode) {
-          const route = [
-            { id: sourceNode.id, x: sourceNode.x, y: sourceNode.y },
+          const visited = new Set();
+          const queue = [
+            [{ id: sourceNode.id, x: sourceNode.x, y: sourceNode.y }],
           ];
 
-          // Check if direct path is available
-          if (getDistance(sourceNode, targetNode) <= sourceNode.range) {
-            route.push({ id: targetNode.id, x: targetNode.x, y: targetNode.y });
-            return route;
+          while (queue.length > 0) {
+            const path = queue.shift();
+            const last = path[path.length - 1];
+
+            if (last.id === targetNode.id) {
+              // Validate intermediate hops (must be repeaters if path length > 2)
+              if (
+                path.length <= 2 ||
+                path.slice(1, -1).every((hop) => {
+                  const node = nodes.find((n) => n.id === hop.id);
+                  return node && node.type === NODE_TYPES.REPEATER;
+                })
+              ) {
+                return path;
+              }
+              continue;
+            }
+
+            if (visited.has(last.id)) continue;
+            visited.add(last.id);
+
+            const currentNode = nodes.find((n) => n.id === last.id);
+            if (!currentNode) continue;
+
+            const neighbors = getNeighbors(currentNode).filter(
+              (other) => !visited.has(other.id),
+            );
+
+            for (const neighbor of neighbors) {
+              queue.push([
+                ...path,
+                { id: neighbor.id, x: neighbor.x, y: neighbor.y },
+              ]);
+            }
           }
 
-          // If not direct, try multi-hop routing through repeaters
-          const foundPath = findPathThroughRepeaters(
-            route,
-            sourceNode,
-            targetNode,
-            0,
-          );
-
-          if (!foundPath) {
-            // No valid path found, return the incomplete route
-            return route;
-          }
-
-          return route;
+          // No valid route found
+          return [{ id: sourceNode.id, x: sourceNode.x, y: sourceNode.y }];
         }
 
         // Create a direct message
         function createDirectMessage(sourceNode, targetNode) {
-          // Find the best route that respects the range limitations
           const route = findRoute(sourceNode, targetNode);
 
-          // If route only has source or is incomplete, this means no valid path exists
           if (
-            route.length <= 1 ||
-            route[route.length - 1].id !== targetNode.id
+            route.length === 1 || // no valid path
+            route.length - 1 > messageConfig.maxHops // too many hops
           ) {
             return null;
           }
