@@ -174,7 +174,6 @@
       }
     </style>
   </head>
-  <div id="fps-monitor"></div>
   <body>
     <section class="hero-section">
       <div class="hero-overlay">
@@ -246,16 +245,6 @@
           color: ROOT_STYLES.getPropertyValue("--message-color").trim(),
         };
 
-        // Animation properties
-        const TARGET_FPS = isMobileDevice() ? 40 : 60;
-        const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
-
-        const SCALE_SPRING = 0.1; // spring stiffness
-        const SCALE_DAMPING = 0.8; // friction resistance
-
-        const FLOOD_EXPANSION_SPEED = 160; // pixels per second
-        const DISAPPEARANCE_SPEED = 0.6; // seconds
-
         const BUTTON_CONFIGS = [
           {
             id: "send-message",
@@ -299,6 +288,17 @@
           },
         ];
 
+        const TARGET_FPS = isMobileDevice() ? 40 : 60;
+        const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
+
+        const SCALE_SPRING = 0.1; // spring stiffness
+        const SCALE_DAMPING = 0.8; // friction resistance
+
+        const FLOOD_EXPANSION_SPEED = 160; // pixels per second
+        const DISAPPEARANCE_SPEED = 0.6; // seconds
+
+        const IS_DEBUG_MODE = window.location.search.includes("debug");
+
         // --- STATE VARIABLES ---
 
         let canvas;
@@ -319,11 +319,13 @@
         let targetScaleFactor = 1;
         let initialLayoutDone = false;
         let initialBatchSent = false;
-        let lastFrameTime = 0;
         let autoSendTimestamp = Date.now();
         let autoSendDelay = MESSAGE_CONFIG.autoSend.delay;
-        let fpsDisplay = document.getElementById("fps-monitor");
+        let fpsDisplay = null;
+        let lastFrameTime = 0;
         let frameTimes = [];
+        let lastDrawTime = 0;
+        let drawTimes = [];
 
         // --- UTILITY FUNCTIONS ---
 
@@ -1097,13 +1099,21 @@
           }
         };
 
-        const updateFPS = (timestamp) => {
-          frameTimes.push(timestamp);
-          while (frameTimes.length > 0 && timestamp - frameTimes[0] > 1000) {
-            frameTimes.shift();
+        const updateFPS = (timestamp, cpuMs = 0) => {
+          if (!IS_DEBUG_MODE) return;
+
+          if (timestamp - lastDrawTime >= MIN_FRAME_DELAY * 0.9) {
+            drawTimes.push(timestamp);
+            lastDrawTime = timestamp;
+
+            while (drawTimes.length > 0 && timestamp - drawTimes[0] > 1000) {
+              drawTimes.shift();
+            }
+
+            const fps = drawTimes.length;
+            const cpu = cpuMs.toFixed(1).padStart(5);
+            fpsDisplay.textContent = `${fps} FPS | ${cpu} ms`;
           }
-          const fps = frameTimes.length;
-          fpsDisplay.textContent = `${fps} FPS`;
         };
 
         const scheduleAutoMessages = () => {
@@ -1284,14 +1294,15 @@
         // Animation loop
         const animate = (timestamp) => {
           if (!animationRunning) return;
-          updateFPS(timestamp);
-
-          const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
 
           if (timestamp - lastFrameTime < MIN_FRAME_DELAY * 0.9) {
             animationFrame = requestAnimationFrame(animate);
             return;
           }
+
+          const cpuStart = performance.now(); // START timing
+
+          const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
           lastFrameTime = timestamp;
 
           // Smooth, springy zoom animation
@@ -1303,6 +1314,10 @@
           updateMessages(deltaTime);
           updateFloods(deltaTime);
           draw();
+
+          const cpuDuration = performance.now() - cpuStart; // END timing
+          updateFPS(timestamp, cpuDuration);
+
           animationFrame = requestAnimationFrame(animate);
         };
 
@@ -1325,6 +1340,12 @@
             button.innerHTML = `<span class="icon">${iconSymbol}</span> ${labelText}`;
             controlsContainer.appendChild(button);
           });
+
+          if (IS_DEBUG_MODE) {
+            fpsDisplay = document.createElement("div");
+            fpsDisplay.id = "fps-monitor";
+            document.body.appendChild(fpsDisplay);
+          }
 
           resizeCanvas();
           updateNodeSizes();
