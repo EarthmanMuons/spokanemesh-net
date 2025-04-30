@@ -24,6 +24,20 @@
         box-sizing: border-box;
       }
 
+      #fps-monitor {
+        position: fixed;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #0f0;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
       body {
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
@@ -160,6 +174,7 @@
       }
     </style>
   </head>
+  <div id="fps-monitor"></div>
   <body>
     <section class="hero-section">
       <div class="hero-overlay">
@@ -307,6 +322,8 @@
         let lastFrameTime = 0;
         let autoSendTimestamp = Date.now();
         let autoSendDelay = MESSAGE_CONFIG.autoSend.delay;
+        let fpsDisplay = document.getElementById("fps-monitor");
+        let frameTimes = [];
 
         // --- UTILITY FUNCTIONS ---
 
@@ -1080,6 +1097,15 @@
           }
         };
 
+        const updateFPS = (timestamp) => {
+          frameTimes.push(timestamp);
+          while (frameTimes.length > 0 && timestamp - frameTimes[0] > 1000) {
+            frameTimes.shift();
+          }
+          const fps = frameTimes.length;
+          fpsDisplay.textContent = `${fps} FPS`;
+        };
+
         const scheduleAutoMessages = () => {
           const idleCallback =
             window.requestIdleCallback ||
@@ -1258,6 +1284,7 @@
         // Animation loop
         const animate = (timestamp) => {
           if (!animationRunning) return;
+          updateFPS(timestamp);
 
           const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
 
