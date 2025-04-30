@@ -319,6 +319,7 @@
         let floodRings = [];
         let floodRingPool = [];
         let processedFloodIds = new Set();
+        let activeFloodIds = new Set();
         let hoveredNode = null;
 
         let nodeConfigs;
@@ -573,8 +574,8 @@
         // Create a flood ring (visualization for flood messages)
         function createFloodRing(sourceNode, originalFloodId = null) {
           const floodId = originalFloodId || generateId();
-          let ring = floodRingPool.pop();
 
+          let ring = floodRingPool.pop();
           if (!ring) {
             ring = {
               id: "",
@@ -603,6 +604,7 @@
             expandSpeed: FLOOD_EXPANSION_SPEED,
             opacity: 0.7,
           });
+          activeFloodIds.add(floodId);
 
           return ring;
         }
@@ -753,6 +755,7 @@
           messages = [];
           floodRings = [];
           processedFloodIds = new Set();
+          activeFloodIds = new Set();
 
           // Place well-distributed repeaters first
           placeNodes(NODE_TYPES.REPEATER);
@@ -1050,7 +1053,24 @@
             nodes.forEach((node) => checkFloodHit(ring, node));
 
             if (ring.radius >= ring.maxRadius) {
-              floodRingPool.push(floodRings.splice(i, 1)[0]);
+              // Remove the ring
+              const expiredRing = floodRings.splice(i, 1)[0];
+              floodRingPool.push(expiredRing);
+
+              // If this was the last ring for its floodId, clean up
+              const floodId = expiredRing.floodId;
+              const stillActive = floodRings.some(
+                (r) => r.floodId === floodId && r !== expiredRing,
+              );
+
+              if (!stillActive) {
+                for (const key of processedFloodIds) {
+                  if (key.startsWith(floodId + "-")) {
+                    processedFloodIds.delete(key);
+                  }
+                }
+                activeFloodIds.delete(floodId);
+              }
             }
           }
         }
