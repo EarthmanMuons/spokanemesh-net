@@ -724,24 +724,16 @@
 
         // Send a flood message
         const sendFlood = (sourceNodeId = null) => {
-          // Choose random client if none specified
-          if (!sourceNodeId) {
-            const clientNodes = nodes.filter(
-              (node) => node.type === NODE_TYPES.CLIENT,
-            );
-            if (clientNodes.length === 0) return;
-            sourceNodeId =
-              clientNodes[Math.floor(Math.random() * clientNodes.length)].id;
-          }
-
-          const sourceNode = nodes.find((node) => node.id === sourceNodeId);
+          const sourceNode = sourceNodeId
+            ? nodes.find((n) => n.id === sourceNodeId)
+            : randomClient();
           if (!sourceNode) return;
 
-          // Create a flood ring with a unique flood ID
+          // Create a unique flood ring from this node and track it
           const floodId = generateId();
           const ring = createFloodRing(sourceNode, floodId);
-          processedFloodIds.add(floodId + "-" + sourceNode.id); // Mark this node as having processed this flood
 
+          processedFloodIds.add(`${floodId}-${sourceNode.id}`);
           floodRings.push(ring);
         };
 
