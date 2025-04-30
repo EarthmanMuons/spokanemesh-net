@@ -275,12 +275,6 @@
             action: () => addNode(NODE_TYPES.REPEATER),
           },
           {
-            id: "toggle-pause",
-            icon: { pause: "❚❚", resume: "▶" },
-            label: { pause: "Pause", resume: "Resume" },
-            action: () => togglePause(),
-          },
-          {
             id: "reset",
             icon: "↻",
             label: "Reset",
@@ -322,7 +316,6 @@
         let animationFrame = null;
         let lastFrameTime = 0;
 
-        let pauseBtn;
         let scaleFactor = 1;
         let targetScaleFactor = 1;
         let scaleVelocity = 0;
@@ -766,7 +759,6 @@
           cancelAnimationFrame(animationFrame);
           initNetwork();
           animate(performance.now());
-          updatePauseButton();
         };
 
         // Update node sizes based on device
@@ -1170,41 +1162,6 @@
           return window.matchMedia("(orientation: portrait)").matches;
         };
 
-        const updatePauseButton = () => {
-          if (!pauseBtn) pauseBtn = document.getElementById("toggle-pause");
-
-          const config = BUTTON_CONFIGS.find(
-            (btn) => btn.id === "toggle-pause",
-          );
-          if (!config) return;
-
-          const icon = animationRunning
-            ? config.icon.pause
-            : config.icon.resume;
-          const label = animationRunning
-            ? config.label.pause
-            : config.label.resume;
-
-          const iconSpan = pauseBtn.querySelector(".icon");
-          if (iconSpan) {
-            iconSpan.textContent = icon;
-          }
-
-          [...pauseBtn.childNodes].forEach((node, idx) => {
-            if (idx > 0 && node.nodeType === Node.TEXT_NODE) {
-              pauseBtn.removeChild(node);
-            }
-          });
-
-          pauseBtn.appendChild(document.createTextNode(" " + label));
-        };
-
-        const togglePause = () => {
-          animationRunning = !animationRunning;
-          updatePauseButton();
-          if (animationRunning) animate(performance.now());
-        };
-
         // Resize canvas to match container with scaling
         const resizeCanvas = () => {
           const container = canvas.parentElement;
@@ -1254,8 +1211,6 @@
             }, 150); // Debounce delay in milliseconds
           });
 
-          pauseBtn = document.getElementById("toggle-pause");
-
           BUTTON_CONFIGS.forEach(({ id, action }) => {
             const button = document.getElementById(id);
             if (button && action) {
@@ -1275,7 +1230,6 @@
                     if (!animationRunning) {
                       animationRunning = true;
                       animate(performance.now());
-                      updatePauseButton();
                     }
                   } else {
                     if (animationRunning) {
@@ -1334,11 +1288,7 @@
             document.getElementById("controls-container");
 
           BUTTON_CONFIGS.forEach(({ id, icon, label }) => {
-            const [iconSymbol, labelText] = [
-              typeof icon === "object" ? icon.pause : icon,
-              typeof label === "object" ? label.pause : label,
-            ];
-
+            const [iconSymbol, labelText] = [icon, label];
             const button = document.createElement("button");
             button.id = id;
             button.innerHTML = `<span class="icon">${iconSymbol}</span> ${labelText}`;
