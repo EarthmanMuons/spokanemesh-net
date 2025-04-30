@@ -359,7 +359,7 @@
         }
 
         function generateId() {
-          return Math.random().toString(36).substr(2, 9);
+          return crypto.randomUUID();
         }
 
         function getDistance({ x: x1, y: y1 }, { x: x2, y: y2 }) {
@@ -555,21 +555,24 @@
             return null;
           }
 
-          let msg = messagePool.pop() || {
-            id: "",
-            type: messageConfig.types.DIRECT,
-            sourceId: "",
-            targetId: "",
-            x: 0,
-            y: 0,
-            size: 0,
-            route: [],
-            currentHopIndex: 0,
-            delivered: false,
-            progress: 0,
-            trail: [],
-            trail_max_length: 10,
-          };
+          let msg = messagePool.pop();
+          if (!msg) {
+            msg = {
+              id: "",
+              type: messageConfig.types.DIRECT,
+              sourceId: "",
+              targetId: "",
+              x: 0,
+              y: 0,
+              size: 0,
+              route: [],
+              currentHopIndex: 0,
+              delivered: false,
+              progress: 0,
+              trail: [],
+              trail_max_length: 10,
+            };
+          }
 
           Object.assign(msg, {
             id: generateId(),
