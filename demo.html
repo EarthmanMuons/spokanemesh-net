@@ -295,6 +295,8 @@
         const SCALE_SPRING = 0.1; // spring stiffness
         const SCALE_DAMPING = 0.8; // friction resistance
 
+        const FLOOD_COLOR =
+          ROOT_STYLES.getPropertyValue("--flood-color").trim();
         const FLOOD_EXPANSION_SPEED = isMobileDevice() ? 100 : 160; // pixels per second
         const DISAPPEARANCE_SPEED = 0.6; // seconds
 
@@ -814,12 +816,11 @@
           });
         };
 
-        // Draw flood rings
         const drawFloodRings = () => {
           floodRings.forEach((ring) => {
             ctx.beginPath();
             ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(230, 173, 63, ${ring.opacity})`;
+            ctx.strokeStyle = hexToRGBA(FLOOD_COLOR, ring.opacity);
             ctx.lineWidth = 2;
             ctx.stroke();
           });
@@ -829,12 +830,11 @@
         const drawMessageRoutes = () => {
           messages.forEach((message) => {
             if (message.type !== messageConfig.types.DIRECT) return;
-            if (message.delivered) return; // Don't show routes for delivered messages
+            if (message.delivered) return;
 
-            // Draw the complete route
             ctx.beginPath();
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = "rgba(217, 119, 98, 0.4)";
+            ctx.strokeStyle = "rgba(217, 119, 98, 0.5)";
             ctx.lineWidth = 1;
 
             const route = message.route;
