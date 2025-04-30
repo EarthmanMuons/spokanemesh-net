@@ -240,6 +240,7 @@
         const MESSAGE_CONFIG = {
           types: { DIRECT: "direct", FLOOD: "flood" },
           size: 7,
+          pulseGrowth: 15,
           speed: 320, // pixels per second
           maxHops: 5,
           autoSend: {
@@ -786,6 +787,9 @@
             };
           });
 
+          MESSAGE_CONFIG.size = 7 * sizeFactor;
+          MESSAGE_CONFIG.pulseGrowth = 15 * sizeFactor;
+
           // Adjust minimum node distance
           minNodeDistance = isMobileDevice() ? 40 : 70;
         };
@@ -945,7 +949,7 @@
               ctx.arc(
                 message.x,
                 message.y,
-                message.size + easedProgress * 15,
+                message.size + easedProgress * MESSAGE_CONFIG.pulseGrowth,
                 0,
                 Math.PI * 2,
               );
