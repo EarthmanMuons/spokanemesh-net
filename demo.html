@@ -317,6 +317,7 @@
         let nodes = [];
         let messages = [];
         let floodRings = [];
+        let floodRingPool = [];
         let processedFloodIds = new Set();
         let hoveredNode = null;
 
@@ -572,9 +573,28 @@
         // Create a flood ring (visualization for flood messages)
         function createFloodRing(sourceNode, originalFloodId = null) {
           const floodId = originalFloodId || generateId();
-          return {
+          let ring = floodRingPool.pop();
+
+          if (!ring) {
+            ring = {
+              id: "",
+              floodId: "",
+              sourceId: "",
+              x: 0,
+              y: 0,
+              radius: 0,
+              maxRadius: 0,
+              expandSpeed: 0,
+              opacity: 0,
+              affectedNodes: new Set(),
+            };
+          } else {
+            ring.affectedNodes.clear();
+          }
+
+          Object.assign(ring, {
             id: generateId(),
-            floodId: floodId, // Unique ID for this flood event
+            floodId,
             sourceId: sourceNode.id,
             x: sourceNode.x,
             y: sourceNode.y,
@@ -582,8 +602,9 @@
             maxRadius: sourceNode.range,
             expandSpeed: FLOOD_EXPANSION_SPEED,
             opacity: 0.7,
-            affectedNodes: new Set(), // Track which nodes have been affected by this flood
-          };
+          });
+
+          return ring;
         }
 
         const addNode = (type) => {
@@ -1029,7 +1050,7 @@
             nodes.forEach((node) => checkFloodHit(ring, node));
 
             if (ring.radius >= ring.maxRadius) {
-              floodRings.splice(i, 1);
+              floodRingPool.push(floodRings.splice(i, 1)[0]);
             }
           }
         }
