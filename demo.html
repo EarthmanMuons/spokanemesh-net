@@ -1042,44 +1042,36 @@
           }
         };
 
-        const updateFloods = (deltaTime) => {
+        function checkFloodHit(ring, node) {
+          const key = `${ring.floodId}-${node.id}`;
+          if (node.id === ring.sourceId || processedFloodIds.has(key))
+            return false;
+
+          const dist = getDistance({ x: ring.x, y: ring.y }, node);
+          const hit = Math.abs(dist - ring.radius) < node.radius;
+
+          if (hit) {
+            processedFloodIds.add(key);
+            if (node.type === NODE_TYPES.REPEATER) {
+              floodRings.push(createFloodRing(node, ring.floodId));
+            }
+          }
+          return hit;
+        }
+
+        function updateFloods(deltaTime) {
           for (let i = floodRings.length - 1; i >= 0; i--) {
             const ring = floodRings[i];
-
-            // Expand the ring
             ring.radius += ring.expandSpeed * deltaTime;
             ring.opacity = 0.7 * (1 - ring.radius / ring.maxRadius);
 
-            // Check if any nodes are hit by the expanding ring
-            nodes.forEach((node) => {
-              // Skip the source node
-              if (node.id === ring.sourceId) return;
+            nodes.forEach((node) => checkFloodHit(ring, node));
 
-              // If this node has already processed this flood ID, skip it
-              if (processedFloodIds.has(ring.floodId + "-" + node.id)) return;
-
-              // Check if the node is hit by the expanding ring
-              const distance = getDistance({ x: ring.x, y: ring.y }, node);
-              const isNodeHit = Math.abs(distance - ring.radius) < node.radius;
-
-              if (isNodeHit) {
-                // Mark this node as having received this flood ID
-                processedFloodIds.add(ring.floodId + "-" + node.id);
-
-                // If this is a repeater, create a new flood ring with same flood ID
-                if (node.type === NODE_TYPES.REPEATER) {
-                  const newRing = createFloodRing(node, ring.floodId);
-                  floodRings.push(newRing);
-                }
-              }
-            });
-
-            // Remove the ring if it's reached its maximum radius
             if (ring.radius >= ring.maxRadius) {
               floodRings.splice(i, 1);
             }
           }
-        };
+        }
 
         const updateFPS = (timestamp, cpuMs = 0) => {
           if (!IS_DEBUG_MODE) return;
