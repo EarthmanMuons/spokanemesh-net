@@ -242,7 +242,7 @@
           size: 7,
           pulseGrowth: 15,
           speed: 320, // pixels per second
-          maxHops: 5,
+          maxHops: 6,
           autoSend: {
             delay: 1200, // milliseconds
             delayVariance: 500, // milliseconds
@@ -975,72 +975,75 @@
 
         // --- SIMULATION UPDATE FUNCTIONS ---
 
-        const updateMessages = (deltaTime) => {
+        function updateDeliveredMessage(message, deltaTime) {
+          message.progress += deltaTime / DISAPPEARANCE_SPEED;
+          return message.progress >= 1;
+        }
+
+        /**
+         * Returns a unit (normalized) direction vector pointing from `from` to `to`.
+         *
+         * The result is an object `{ x, y }` where both components range from -1 to 1.
+         * If the points are the same, returns `{ x: 0, y: 0 }`.
+         *
+         * @param {Object} from - Starting point with { x, y }.
+         * @param {Object} to - Destination point with { x, y }.
+         * @returns {Object} Normalized direction vector { x, y }.
+         */
+        function getUnitVector(from, to) {
+          const dx = to.x - from.x;
+          const dy = to.y - from.y;
+          const dist = getDistance(from, to);
+          return dist === 0 ? { x: 0, y: 0 } : { x: dx / dist, y: dy / dist };
+        }
+
+        function advanceMessage(message, deltaTime) {
+          const next = message.route[message.currentHopIndex + 1];
+          const now = performance.now();
+
+          message.trail.push({ x: message.x, y: message.y, time: now });
+
+          const trailDuration = 150; // milliseconds of trail to keep
+          message.trail = message.trail.filter(
+            (p) => now - p.time <= trailDuration,
+          );
+
+          const distToNext = getDistance(message, next);
+          const moveDist = messageConfig.speed * deltaTime;
+
+          if (moveDist >= distToNext) {
+            // Reached next hop
+            message.x = next.x;
+            message.y = next.y;
+            message.currentHopIndex++;
+            message.trail = [];
+
+            if (message.currentHopIndex === message.route.length - 1) {
+              message.delivered = true;
+              message.progress = 0;
+            }
+          } else {
+            // Move toward next hop
+            const direction = getUnitVector(message, next);
+            message.x += direction.x * moveDist;
+            message.y += direction.y * moveDist;
+          }
+        }
+
+        function updateMessages(deltaTime) {
           for (let i = messages.length - 1; i >= 0; i--) {
             const message = messages[i];
             if (message.type !== messageConfig.types.DIRECT) continue;
 
             if (message.delivered) {
-              message.progress += deltaTime / DISAPPEARANCE_SPEED;
-              if (message.progress >= 1) {
+              if (updateDeliveredMessage(message, deltaTime)) {
                 messages.splice(i, 1);
               }
-              continue;
-            }
-
-            // Get current and next points in the route
-            const currentHopIndex = message.currentHopIndex;
-            const nextHopIndex = currentHopIndex + 1;
-
-            // Check if we've reached the end of the route
-            if (nextHopIndex >= message.route.length) {
-              message.delivered = true;
-              continue;
-            }
-
-            const currentPoint = message.route[currentHopIndex];
-            const nextPoint = message.route[nextHopIndex];
-
-            const now = performance.now();
-
-            // Add current position to trail
-            message.trail.push({ x: message.x, y: message.y, time: now });
-
-            // cap trail by time
-            const trailDuration = 0.15 * 1000; // seconds worth of trail
-
-            message.trail = message.trail.filter(
-              (p) => now - p.time <= trailDuration,
-            );
-
-            // Calculate distance to next hop
-            const dx = nextPoint.x - message.x;
-            const dy = nextPoint.y - message.y;
-            const distanceToNext = Math.sqrt(dx * dx + dy * dy);
-
-            const distance = messageConfig.speed * deltaTime;
-
-            if (distance >= distanceToNext) {
-              // Reached next hop
-              message.x = nextPoint.x;
-              message.y = nextPoint.y;
-              message.currentHopIndex = nextHopIndex;
-
-              message.trail = [];
-
-              // If we've reached the final destination, mark as delivered
-              if (nextHopIndex === message.route.length - 1) {
-                message.delivered = true;
-                message.progress = 0;
-                continue;
-              }
             } else {
-              // Move towards next hop
-              message.x += (dx / distanceToNext) * distance;
-              message.y += (dy / distanceToNext) * distance;
+              advanceMessage(message, deltaTime);
             }
           }
-        };
+        }
 
         function checkFloodHit(ring, node) {
           const key = `${ring.floodId}-${node.id}`;
