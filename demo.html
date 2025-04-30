@@ -671,11 +671,11 @@
             const msg = createDirectMessage(sourceNode, target);
             if (!msg) continue;
 
-            // Prefer longer, visually interesting paths
+            // Prefer longer paths
             if (msg.route.length > 3) return msg;
 
             // Accept shorter multi-hop (1 repeater) routes 50% of the time,
-            // but keep looking in hopes of finding a longer path
+            // but otherwise keep looking in hopes of finding a longer path
             if (msg.route.length > 2 && Math.random() < 0.5) return msg;
           }
           return null;
@@ -689,37 +689,41 @@
           return null;
         }
 
+        function findInterestingRoute(sourceNode) {
+          const nearbyClients = clientsNearby(sourceNode);
+          const distantClients = clientsBeyondRange(sourceNode);
+
+          // Prefer multi-hop routes (visually interesting, activates repeaters)
+          if (distantClients.length > 0 && Math.random() < 0.8) {
+            const msg = tryMultiHopRoute(sourceNode, distantClients);
+            if (msg) return msg;
+          }
+
+          // Otherwise, attempt a simple delivery to a nearby client
+          if (nearbyClients.length > 0) {
+            const target =
+              nearbyClients[Math.floor(Math.random() * nearbyClients.length)];
+            const msg = createDirectMessage(sourceNode, target);
+            if (msg) return msg;
+          }
+
+          // As a last resort, try *any* valid route to a distant client
+          if (distantClients.length > 0) {
+            const msg = tryFallbackRoute(sourceNode, distantClients);
+            if (msg) return msg;
+          }
+
+          return null;
+        }
+
         const sendMessage = (sourceNodeId = null) => {
           const sourceNode = sourceNodeId
             ? nodes.find((n) => n.id === sourceNodeId)
             : randomClient();
           if (!sourceNode) return;
 
-          const directClients = clientsNearby(sourceNode);
-          const relayClients = clientsBeyondRange(sourceNode);
-
-          let message = null;
-
-          // Prefer visually interesting multi-hop messages (via repeaters)
-          if (relayClients.length > 0 && Math.random() < 0.8) {
-            message = tryMultiHopRoute(sourceNode, relayClients);
-          }
-
-          // If no multi-hop route selected, try sending to a nearby client directly
-          if (!message && directClients.length > 0) {
-            const target =
-              directClients[Math.floor(Math.random() * directClients.length)];
-            message = createDirectMessage(sourceNode, target);
-          }
-
-          // As a last fallback, attempt any valid route to a distant client (even short ones)
-          if (!message && relayClients.length > 0) {
-            message = tryFallbackRoute(sourceNode, relayClients);
-          }
-
-          if (message) {
-            messages.push(message);
-          }
+          const message = findInterestingRoute(sourceNode);
+          if (message) messages.push(message);
         };
 
         // Send a flood message
