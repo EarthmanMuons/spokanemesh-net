@@ -1199,16 +1199,20 @@
         };
 
         function setupResizeListener() {
-          window.addEventListener("resize", () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-              if (window.devicePixelRatio !== dpr) {
-                dpr = window.devicePixelRatio || 1;
-              }
+          window.addEventListener(
+            "resize",
+            () => {
+              clearTimeout(resizeTimeout);
+              resizeTimeout = setTimeout(() => {
+                if (window.devicePixelRatio !== dpr) {
+                  dpr = window.devicePixelRatio || 1;
+                }
 
-              resizeCanvas();
-            }, 250);
-          });
+                resizeCanvas();
+              }, 250);
+            },
+            { passive: true },
+          );
         }
 
         function setupVisibilityObserver() {
