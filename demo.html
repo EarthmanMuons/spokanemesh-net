@@ -304,26 +304,30 @@
         let canvas;
         let ctx;
         let dpr = window.devicePixelRatio || 1;
+        let baseWidth, baseHeight;
         let resizeTimeout;
+
         let nodes = [];
         let messages = [];
         let floodRings = [];
         let processedFloodIds = new Set();
-        let animationRunning = true;
-        let animationFrame = null;
-        let pauseBtn;
-        let baseWidth, baseHeight;
         let minNodeDistance;
-        let scaleFactor = 1;
-        let scaleVelocity = 0;
-        let targetScaleFactor = 1;
         let initialLayoutDone = false;
         let initialBatchSent = false;
+
         let autoSendTimestamp = Date.now();
         let autoSendDelay = MESSAGE_CONFIG.autoSend.delay;
-        let fpsDisplay = null;
+
+        let animationRunning = true;
+        let animationFrame = null;
         let lastFrameTime = 0;
-        let frameTimes = [];
+
+        let pauseBtn;
+        let scaleFactor = 1;
+        let targetScaleFactor = 1;
+        let scaleVelocity = 0;
+
+        let fpsDisplay = null;
         let lastDrawTime = 0;
         let drawTimes = [];
 
