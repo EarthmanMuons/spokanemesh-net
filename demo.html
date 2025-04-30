@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mesh Network Demonstration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
     <style>
       :root {
         /* Inland Northwest inspired color palette */
@@ -39,9 +45,11 @@
       }
 
       body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-          Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        font-family: "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 400;
+        font-style: normal;
+        font-variation-settings: "wdth" 100;
         background-color: #ffffff;
         color: var(--text-color);
       }
@@ -258,7 +266,7 @@
           },
           {
             id: "send-flood",
-            icon: "➾",
+            icon: "➠",
             label: "Send Flood",
             action: () => sendFlood(),
           },
