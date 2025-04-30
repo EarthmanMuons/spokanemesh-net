@@ -237,7 +237,7 @@
 
         const PLACEMENT_ATTEMPTS_MAX = 30;
 
-        const MESSAGE_CONFIG = {
+        const DEFAULT_MESSAGE_CONFIG = {
           types: { DIRECT: "direct", FLOOD: "flood" },
           size: 7,
           pulseGrowth: 15,
@@ -311,14 +311,16 @@
         let messages = [];
         let floodRings = [];
         let processedFloodIds = new Set();
+
+        let nodeConfigs;
         let minNodeDistance;
-        let initialLayoutDone = false;
-        let initialBatchSent = false;
+        let messageConfig;
 
         let autoSendTimestamp = Date.now();
-        let autoSendDelay = MESSAGE_CONFIG.autoSend.delay;
+        let autoSendDelay = 0;
 
         let animationRunning = true;
+        let initialLayoutDone = false;
         let animationFrame = null;
         let lastFrameTime = 0;
 
@@ -449,7 +451,7 @@
         };
 
         function getNodeConfig(type) {
-          const config = NODE_CONFIGS[type];
+          const config = nodeConfigs[type];
           if (!config) {
             console.error(`Unknown node type: ${type}`);
             return null;
@@ -515,7 +517,7 @@
           hopCount,
         ) {
           // Base case: too many hops
-          if (hopCount >= MESSAGE_CONFIG.maxHops) {
+          if (hopCount >= messageConfig.maxHops) {
             return false;
           }
 
@@ -604,12 +606,12 @@
 
           return {
             id: generateId(),
-            type: MESSAGE_CONFIG.types.DIRECT,
+            type: messageConfig.types.DIRECT,
             sourceId: sourceNode.id,
             targetId: targetNode.id,
             x: sourceNode.x,
             y: sourceNode.y,
-            size: MESSAGE_CONFIG.size,
+            size: messageConfig.size,
             route: route,
             currentHopIndex: 0,
             delivered: false,
@@ -767,16 +769,15 @@
           animate(performance.now());
         };
 
-        // Update node sizes based on device
-        const updateNodeSizes = () => {
+        // Scale simulation parameters based on device size and pixel density
+        const applyScaling = () => {
           const sizeFactor = isMobileDevice() ? 0.5 : 1;
 
-          NODE_CONFIGS = {};
-
+          nodeConfigs = {};
           Object.entries(DEFAULT_NODE_CONFIGS).forEach(([type, def]) => {
             const countFactor = isMobileDevice() ? def.mobileCountFactor : 1;
 
-            NODE_CONFIGS[type] = {
+            nodeConfigs[type] = {
               ...def,
               count: Math.floor(def.count * countFactor),
               size: def.size * sizeFactor,
@@ -787,11 +788,14 @@
             };
           });
 
-          MESSAGE_CONFIG.size = 7 * sizeFactor;
-          MESSAGE_CONFIG.pulseGrowth = 15 * sizeFactor;
-
-          // Adjust minimum node distance
           minNodeDistance = isMobileDevice() ? 40 : 70;
+
+          messageConfig = {
+            ...DEFAULT_MESSAGE_CONFIG,
+            size: DEFAULT_MESSAGE_CONFIG.size * sizeFactor,
+            pulseGrowth: DEFAULT_MESSAGE_CONFIG.pulseGrowth * sizeFactor,
+            speed: DEFAULT_MESSAGE_CONFIG.speed * sizeFactor,
+          };
         };
 
         const initNetwork = () => {
@@ -800,7 +804,6 @@
           messages = [];
           floodRings = [];
           processedFloodIds = new Set();
-          initialBatchSent = false;
 
           // Place well-distributed repeaters first
           placeNodes(NODE_TYPES.REPEATER);
@@ -841,7 +844,7 @@
         // Draw message routes (faint lines showing the path)
         const drawMessageRoutes = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_CONFIG.types.DIRECT) return;
+            if (message.type !== messageConfig.types.DIRECT) return;
             if (message.delivered) return; // Don't show routes for delivered messages
 
             // Draw the complete route
@@ -865,7 +868,7 @@
         // Draw trails behind messages
         const drawMessageTrails = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_CONFIG.types.DIRECT) return;
+            if (message.type !== messageConfig.types.DIRECT) return;
             if (!message.trail || message.trail.length < 2) return;
 
             ctx.beginPath();
@@ -937,9 +940,9 @@
 
         const drawMessages = () => {
           messages.forEach((message) => {
-            if (message.type !== MESSAGE_CONFIG.types.DIRECT) return;
+            if (message.type !== messageConfig.types.DIRECT) return;
 
-            const color = MESSAGE_CONFIG.color;
+            const color = messageConfig.color;
 
             if (message.delivered) {
               // Draw delivery effect (growing pulse)
@@ -949,7 +952,7 @@
               ctx.arc(
                 message.x,
                 message.y,
-                message.size + easedProgress * MESSAGE_CONFIG.pulseGrowth,
+                message.size + easedProgress * messageConfig.pulseGrowth,
                 0,
                 Math.PI * 2,
               );
@@ -965,7 +968,7 @@
 
             // Add a white border to make messages more visible
             ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1;
             ctx.stroke();
           });
         };
@@ -1001,7 +1004,7 @@
         const updateMessages = (deltaTime) => {
           for (let i = messages.length - 1; i >= 0; i--) {
             const message = messages[i];
-            if (message.type !== MESSAGE_CONFIG.types.DIRECT) continue;
+            if (message.type !== messageConfig.types.DIRECT) continue;
 
             if (message.delivered) {
               message.progress += deltaTime / DISAPPEARANCE_SPEED;
@@ -1041,7 +1044,7 @@
             const dy = nextPoint.y - message.y;
             const distanceToNext = Math.sqrt(dx * dx + dy * dy);
 
-            const distance = MESSAGE_CONFIG.speed * deltaTime;
+            const distance = messageConfig.speed * deltaTime;
 
             if (distance >= distanceToNext) {
               // Reached next hop
@@ -1131,16 +1134,13 @@
           idleCallback((deadline) => {
             if (nodes.length && animationRunning) {
               const now = Date.now();
-              if (
-                !initialBatchSent ||
-                now - autoSendTimestamp > autoSendDelay
-              ) {
+              if (now - autoSendTimestamp > autoSendDelay) {
                 const clients = nodes.filter(
                   (n) => n.type === NODE_TYPES.CLIENT,
                 );
                 if (clients.length) {
                   const { delay, delayVariance, batchSize } =
-                    MESSAGE_CONFIG.autoSend;
+                    messageConfig.autoSend;
 
                   for (let i = 0; i < batchSize; i++) {
                     setTimeout(() => {
@@ -1155,7 +1155,6 @@
                   autoSendTimestamp = now;
                   autoSendDelay =
                     delay + getRandomInt(-delayVariance, delayVariance);
-                  initialBatchSent = true;
                 }
               }
             }
@@ -1209,7 +1208,7 @@
                 dpr = window.devicePixelRatio || 1;
               }
               resizeCanvas();
-              updateNodeSizes();
+              applyScaling();
 
               nodes.forEach((node) => {
                 const config = getNodeConfig(node.type);
@@ -1311,7 +1310,7 @@
           }
 
           resizeCanvas();
-          updateNodeSizes();
+          applyScaling();
           initNetwork();
           scheduleAutoMessages();
           setupEventListeners();
