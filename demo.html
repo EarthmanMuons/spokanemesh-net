@@ -11,6 +11,7 @@
         --client-color: #4a9fc9;
         --repeater-color: #2d5e82;
         --message-color: #d97762;
+        --message-border: rgba(255, 255, 255, 0.6);
         --flood-color: #e6ad3f;
         --text-color: #333333;
         --button-bg: #4a9fc9;
@@ -250,6 +251,7 @@
             batchSize: 4, // messages per interval
           },
           color: ROOT_STYLES.getPropertyValue("--message-color").trim(),
+          borderColor: ROOT_STYLES.getPropertyValue("--message-border").trim(),
         };
 
         const BUTTON_CONFIGS = [
@@ -834,7 +836,7 @@
 
             ctx.beginPath();
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = "rgba(217, 119, 98, 0.5)";
+            ctx.strokeStyle = hexToRGBA(messageConfig.color, 0.5);
             ctx.lineWidth = 1;
 
             const route = message.route;
@@ -875,8 +877,8 @@
               trail[trail.length - 1].x,
               trail[trail.length - 1].y,
             );
-            gradient.addColorStop(0, "rgba(217, 119, 98, 0)");
-            gradient.addColorStop(1, "rgba(217, 119, 98, 0.5)");
+            gradient.addColorStop(0, hexToRGBA(messageConfig.color, 0));
+            gradient.addColorStop(1, hexToRGBA(messageConfig.color, 0.5));
 
             ctx.strokeStyle = gradient;
             ctx.lineWidth = 3;
@@ -950,7 +952,7 @@
                 0,
                 Math.PI * 2,
               );
-              ctx.fillStyle = `rgba(217, 119, 98, ${1 - easedProgress})`;
+              ctx.fillStyle = hexToRGBA(messageConfig.color, 1 - easedProgress);
               ctx.fill();
             }
 
@@ -961,7 +963,7 @@
             ctx.fill();
 
             // Add a white border to make messages more visible
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.strokeStyle = messageConfig.borderColor;
             ctx.lineWidth = 1;
             ctx.stroke();
           });
