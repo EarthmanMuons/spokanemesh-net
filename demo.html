@@ -384,26 +384,17 @@
           return crypto.randomUUID();
         }
 
-        let distCalcCount = 0;
-        let distCalcTime = 0;
-
         function getDistance(a, b) {
-          const start = performance.now();
-          distCalcCount++;
           const dx = a.x - b.x;
           const dy = a.y - b.y;
-          const result = Math.sqrt(dx * dx + dy * dy);
-          distCalcTime += performance.now() - start;
-          return result;
+          return Math.sqrt(dx * dx + dy * dy);
         }
 
-        setInterval(() => {
-          console.log(
-            `${distCalcCount} distance calcs in ${distCalcTime.toFixed(2)} ms`,
-          );
-          distCalcCount = 0;
-          distCalcTime = 0;
-        }, 2000);
+        function getSquaredDistance(a, b) {
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          return dx * dx + dy * dy;
+        }
 
         function getRandomInt(min, max) {
           return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -687,8 +678,8 @@
             for (const other of nodes) {
               if (node.id === other.id) continue;
 
-              const dist = getDistance(node, other);
-              const inRange = dist <= node.range * node.range;
+              const distSq = getSquaredDistance(node, other);
+              const inRange = distSq <= node.range * node.range;
 
               if (inRange) {
                 node.neighbors.push(other);
@@ -1097,8 +1088,10 @@
             return false;
           }
 
-          const dist = getDistance(ring, node);
-          const hit = Math.abs(dist - ring.radius) < node.hitbox;
+          const distSq = getSquaredDistance(ring, node);
+          const minR = ring.radius - node.hitbox;
+          const maxR = ring.radius + node.hitbox;
+          const hit = distSq >= minR * minR && distSq <= maxR * maxR;
 
           if (hit) {
             processedFloods.add(key);
@@ -1106,6 +1099,7 @@
               floodRings.push(createFloodRing(node, ring.floodId));
             }
           }
+
           return hit;
         }
 
@@ -1118,18 +1112,7 @@
             const source = nodes.find((n) => n.id === ring.sourceId);
             if (source) {
               for (const node of source.neighbors) {
-                if (node.id === source.id) continue;
-
-                const key = `${ring.floodId}-${node.id}`;
-                if (processedFloods.has(key)) continue;
-
-                const dist = getDistance(ring, node);
-                if (Math.abs(dist - ring.radius) < node.hitbox) {
-                  processedFloods.add(key);
-                  if (node.type === NodeType.REPEATER) {
-                    floodRings.push(createFloodRing(node, ring.floodId));
-                  }
-                }
+                processFloodCollision(ring, node);
               }
             }
 
@@ -1335,7 +1318,7 @@
                 const y = e.clientY - rect.top;
 
                 hoveredNode = nodes.find(
-                  (n) => getDistance(n, { x, y }) <= n.size,
+                  (n) => getSquaredDistance(n, { x, y }) <= n.size * n.size,
                 );
 
                 if (hoveredNode && !animationRunning) {
@@ -1364,7 +1347,7 @@
             const y = e.clientY - rect.top;
 
             const clickedNode = nodes.find(
-              (n) => getDistance(n, { x, y }) <= n.size,
+              (n) => getSquaredDistance(n, { x, y }) <= n.size * n.size,
             );
 
             if (clickedNode) {
