@@ -320,8 +320,8 @@
         const SCALE_SPRING = 0.1; // spring stiffness
         const SCALE_DAMPING = 0.8; // friction resistance
 
-        const FLOOD_EXPANSION_SPEED = isMobileDevice() ? 120 : 180; // pixels per second
-        const DISAPPEARANCE_SPEED = 0.6; // seconds
+        const FLOOD_RING_SPEED = isMobileDevice() ? 120 : 180; // pixels per second
+        const MESSAGE_FADE_DURATION = 0.6; // seconds
 
         const IS_DEBUG_MODE = window.location.search.includes("debug");
 
@@ -412,7 +412,7 @@
           return node;
         }
 
-        function getCandidateCoords(useGrid, col, row, cellW, cellH, radius) {
+        function generateCoords(useGrid, col, row, cellW, cellH, radius) {
           if (useGrid) {
             return {
               x: col * cellW + cellW * (0.25 + Math.random() * 0.5),
@@ -430,9 +430,9 @@
           return nodes.some((n) => getDistance({ x, y }, n) < minNodeDistance);
         }
 
-        function placeNodeRandomly(node, useGrid, col, row, cellW, cellH) {
+        function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
           for (let i = 0; i < PLACEMENT_ATTEMPTS_MAX; i++) {
-            const { x, y } = getCandidateCoords(
+            const { x, y } = generateCoords(
               useGrid,
               col,
               row,
@@ -465,7 +465,7 @@
             const row = useGrid ? Math.floor(placed / gridCols) : null;
             const col = useGrid ? placed % gridCols : null;
 
-            const success = placeNodeRandomly(
+            const success = tryPlaceNode(
               node,
               useGrid,
               col,
@@ -636,7 +636,7 @@
             y: sourceNode.y,
             radius: 0,
             maxRadius: sourceNode.range,
-            expandSpeed: FLOOD_EXPANSION_SPEED,
+            expandSpeed: FLOOD_RING_SPEED,
             opacity: 0.7,
           });
 
@@ -645,7 +645,7 @@
 
         const addNode = (type) => {
           const node = createNode(type);
-          const success = placeNodeRandomly(node, false); // no grid for manual adds
+          const success = tryPlaceNode(node, false); // no grid for manual adds
           if (success) nodes.push(node);
         };
 
@@ -656,13 +656,13 @@
           return clients[Math.floor(Math.random() * clients.length)];
         }
 
-        function clientsNearby(sourceNode) {
+        function clientsInRange(sourceNode) {
           return getNeighbors(sourceNode).filter(
             (n) => n.type === NODE_TYPES.CLIENT,
           );
         }
 
-        function clientsBeyondRange(sourceNode) {
+        function clientsOutOfRange(sourceNode) {
           return nodes.filter(
             (n) =>
               n.type === NODE_TYPES.CLIENT &&
@@ -688,7 +688,7 @@
           return null;
         }
 
-        function tryFallbackRoute(sourceNode, candidates) {
+        function tryAnyRoute(sourceNode, candidates) {
           for (const target of candidates) {
             const msg = createDirectMessage(sourceNode, target);
             if (msg) return msg;
@@ -697,8 +697,8 @@
         }
 
         function findInterestingRoute(sourceNode) {
-          const nearbyClients = clientsNearby(sourceNode);
-          const distantClients = clientsBeyondRange(sourceNode);
+          const nearbyClients = clientsInRange(sourceNode);
+          const distantClients = clientsOutOfRange(sourceNode);
 
           // Prefer multi-hop routes (visually interesting, activates repeaters)
           if (distantClients.length > 0 && Math.random() < 0.8) {
@@ -716,7 +716,7 @@
 
           // As a last resort, try *any* valid route to a distant client
           if (distantClients.length > 0) {
-            const msg = tryFallbackRoute(sourceNode, distantClients);
+            const msg = tryAnyRoute(sourceNode, distantClients);
             if (msg) return msg;
           }
 
@@ -978,7 +978,7 @@
         };
 
         // Draw all elements on canvas
-        const draw = () => {
+        const renderFrame = () => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           const scaledWidth = canvas.width / dpr;
@@ -999,7 +999,7 @@
         // --- SIMULATION UPDATE FUNCTIONS ---
 
         function updateDeliveredMessage(message, deltaTime) {
-          message.progress += deltaTime / DISAPPEARANCE_SPEED;
+          message.progress += deltaTime / MESSAGE_FADE_DURATION;
           return message.progress >= 1;
         }
 
@@ -1342,7 +1342,7 @@
 
           updateMessages(deltaTime);
           updateFloods(deltaTime);
-          draw();
+          renderFrame();
 
           const cpuDuration = performance.now() - cpuStart; // END timing
           updateFPS(timestamp, cpuDuration);
