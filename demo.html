@@ -826,7 +826,7 @@
 
             const isHovered = hoveredNode && node.id === hoveredNode.id;
 
-            ctx.strokeStyle = hslToHsla(node.color, isHovered ? 0.4 : 0.1);
+            ctx.strokeStyle = hslToHsla(node.color, isHovered ? 0.5 : 0.1);
             ctx.lineWidth = 1;
             ctx.stroke();
           });
