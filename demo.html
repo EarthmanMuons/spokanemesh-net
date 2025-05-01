@@ -12,8 +12,8 @@
         --client-color-dark: hsl(200, 54%, 44%);
         --repeater-color: hsl(205, 49%, 34%); /* #2d5e82 */
         --repeater-color-dark: hsl(205, 49%, 24%);
-        --message-color: hsl(11, 61%, 62%); /* #d97762 */
-        --message-color-border: hsla(0, 0%, 100%, 0.6); /* #ffffff */
+        --packet-color: hsl(11, 61%, 62%); /* #d97762 */
+        --packet-color-border: hsla(0, 0%, 100%, 0.6); /* #ffffff */
         --flood-color: hsl(40, 77%, 57%); /* #e6ad3f */
         --text-color: hsl(0, 0%, 20%); /* #333333 */
         --button-bg: hsl(200, 54%, 54%); /* #4a9fc9 */
@@ -192,7 +192,7 @@
         <div class="hero-text-background">
           <h1 class="hero-title">Mesh Network Communication</h1>
           <p class="hero-description">
-            Visualizing how messages propagate across a distributed network of
+            Visualizing how packets propagate across a distributed network of
             client and repeater nodes.
           </p>
         </div>
@@ -220,16 +220,16 @@
           CLIENT_COLOR_DARK,
           REPEATER_COLOR,
           REPEATER_COLOR_DARK,
-          MESSAGE_COLOR,
-          MESSAGE_COLOR_BORDER,
+          PACKET_COLOR,
+          PACKET_COLOR_BORDER,
           FLOOD_COLOR,
         ] = [
           "--client-color",
           "--client-color-dark",
           "--repeater-color",
           "--repeater-color-dark",
-          "--message-color",
-          "--message-color-border",
+          "--packet-color",
+          "--packet-color-border",
           "--flood-color",
         ].map((v) => ROOT_STYLES.getPropertyValue(v).trim());
 
@@ -262,54 +262,69 @@
 
         const PLACEMENT_ATTEMPTS_MAX = 30;
 
-        const DEFAULT_MESSAGE_CONFIG = {
-          types: { DIRECT: "direct", FLOOD: "flood" },
+        const DEFAULT_PACKET_CONFIG = {
           size: 7,
           pulseGrowth: 15,
           speed: 320, // pixels per second
           maxHops: 6,
-          autoSend: {
+          autoDispatch: {
             delay: 1200, // milliseconds
             delayVariance: 500, // milliseconds
-            batchSize: 4, // messages per interval
+            batchSize: 4, // packets per interval
           },
-          color: MESSAGE_COLOR,
-          borderColor: MESSAGE_COLOR_BORDER,
+          color: PACKET_COLOR,
+          borderColor: PACKET_COLOR_BORDER,
+        };
+
+        const ROUTE_VIA = {
+          DIRECT: "direct", // unicast
+          FLOOD: "flood", // broadcast
         };
 
         const BUTTON_CONFIGS = [
           {
-            id: "send-message",
+            id: "send-direct",
             icon: "→",
-            label: "Send Message",
+            label: "Send Direct",
+            title: "Unicast to a single client",
             action: () => {
-              sendMessage();
-              setTimeout(sendMessage, 150);
-              setTimeout(sendMessage, 300);
+              dispatchPacket({ strategy: ROUTE_VIA.DIRECT });
+              setTimeout(
+                () => dispatchPacket({ strategy: ROUTE_VIA.DIRECT }),
+                150,
+              );
+              setTimeout(
+                () => dispatchPacket({ strategy: ROUTE_VIA.DIRECT }),
+                300,
+              );
             },
           },
           {
             id: "send-flood",
             icon: "➜",
             label: "Send Flood",
-            action: () => sendFlood(),
+            title: "Broadcast to all nodes within range",
+            action: () => dispatchPacket({ strategy: ROUTE_VIA.FLOOD }),
           },
           {
             id: "add-client",
             icon: "＋",
             label: "Add Client",
+            title: "End-user node that sends and receives packets",
             action: () => addNode(NODE_TYPES.CLIENT),
           },
           {
             id: "add-repeater",
             icon: "⊕",
             label: "Add Repeater",
+            title: "Relay node that forwards packets between clients",
             action: () => addNode(NODE_TYPES.REPEATER),
           },
           {
             id: "reset",
             icon: "↻",
             label: "Reset",
+            title: "Reinitialize the network layout and restart the animation",
             action: () => resetNetwork(),
           },
         ];
@@ -317,11 +332,8 @@
         const TARGET_FPS = isMobileDevice() ? 30 : 60;
         const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
 
-        const SCALE_SPRING = 0.1; // spring stiffness
-        const SCALE_DAMPING = 0.8; // friction resistance
-
         const FLOOD_RING_SPEED = isMobileDevice() ? 120 : 180; // pixels per second
-        const MESSAGE_FADE_DURATION = 0.6; // seconds
+        const PACKET_FADE_DURATION = 0.6; // seconds
 
         const IS_DEBUG_MODE = window.location.search.includes("debug");
 
@@ -334,8 +346,8 @@
         let resizeTimeout;
 
         let nodes = [];
-        let messages = [];
-        let messagePool = [];
+        let packets = [];
+        let packetPool = [];
         let floodRings = [];
         let floodRingPool = [];
         let processedFloodIds = new Set();
@@ -343,10 +355,10 @@
 
         let nodeConfigs;
         let minNodeDistance;
-        let messageConfig;
+        let packetConfig;
 
-        let autoSendTimestamp = Date.now();
-        let autoSendDelay = 0;
+        let nextDispatchAt = Date.now();
+        let dispatchCooldown = 0;
 
         let animationRunning = true;
         let initialLayoutDone = false;
@@ -556,24 +568,24 @@
         }
 
         /**
-         * Creates a direct (non-flood) message between two clients.
+         * Creates a direct (non-flood) packet between two clients.
          * May be single-hop or multi-hop (via repeaters), depending on network topology.
          */
-        function createDirectMessage(sourceNode, targetNode) {
+        function createDirectPacket(sourceNode, targetNode) {
           const route = findRoute(sourceNode, targetNode);
 
           if (
             route.length === 1 || // no valid path
-            route.length - 1 > messageConfig.maxHops // too many hops
+            route.length - 1 > packetConfig.maxHops // too many hops
           ) {
             return null;
           }
 
-          let msg = messagePool.pop();
+          let msg = packetPool.pop();
           if (!msg) {
             msg = {
               id: "",
-              type: messageConfig.types.DIRECT,
+              strategy: ROUTE_VIA.DIRECT,
               sourceId: "",
               targetId: "",
               x: 0,
@@ -590,12 +602,12 @@
 
           Object.assign(msg, {
             id: generateId(),
-            type: messageConfig.types.DIRECT,
+            strategy: ROUTE_VIA.DIRECT,
             sourceId: sourceNode.id,
             targetId: targetNode.id,
             x: sourceNode.x,
             y: sourceNode.y,
-            size: messageConfig.size,
+            size: packetConfig.size,
             route,
             currentHopIndex: 0,
             delivered: false,
@@ -606,7 +618,7 @@
           return msg;
         }
 
-        // Create a flood ring (visualization for flood messages)
+        // Create a flood ring (visualization for broadcasts)
         function createFloodRing(sourceNode, originalFloodId = null) {
           const floodId = originalFloodId || generateId();
 
@@ -649,7 +661,7 @@
           if (success) nodes.push(node);
         };
 
-        function randomClient(excludeId = null) {
+        function pickRandomClient(excludeId = null) {
           const clients = nodes.filter(
             (n) => n.type === NODE_TYPES.CLIENT && n.id !== excludeId,
           );
@@ -675,7 +687,7 @@
           for (let i = 0; i < 3; i++) {
             const target =
               candidates[Math.floor(Math.random() * candidates.length)];
-            const msg = createDirectMessage(sourceNode, target);
+            const msg = createDirectPacket(sourceNode, target);
             if (!msg) continue;
 
             // Prefer longer paths
@@ -690,7 +702,7 @@
 
         function tryAnyRoute(sourceNode, candidates) {
           for (const target of candidates) {
-            const msg = createDirectMessage(sourceNode, target);
+            const msg = createDirectPacket(sourceNode, target);
             if (msg) return msg;
           }
           return null;
@@ -710,7 +722,7 @@
           if (nearbyClients.length > 0) {
             const target =
               nearbyClients[Math.floor(Math.random() * nearbyClients.length)];
-            const msg = createDirectMessage(sourceNode, target);
+            const msg = createDirectPacket(sourceNode, target);
             if (msg) return msg;
           }
 
@@ -723,30 +735,24 @@
           return null;
         }
 
-        const sendMessage = (sourceNodeId = null) => {
-          const sourceNode = sourceNodeId
-            ? nodes.find((n) => n.id === sourceNodeId)
-            : randomClient();
-          if (!sourceNode) return;
+        function dispatchPacket({ id = null, strategy }) {
+          const source = id
+            ? nodes.find((n) => n.id === id)
+            : pickRandomClient();
+          if (!source) return;
 
-          const message = findInterestingRoute(sourceNode);
-          if (message) messages.push(message);
-        };
-
-        // Send a flood message
-        const sendFlood = (sourceNodeId = null) => {
-          const sourceNode = sourceNodeId
-            ? nodes.find((n) => n.id === sourceNodeId)
-            : randomClient();
-          if (!sourceNode) return;
-
-          // Create a unique flood ring from this node and track it
-          const floodId = generateId();
-          const ring = createFloodRing(sourceNode, floodId);
-
-          processedFloodIds.add(`${floodId}-${sourceNode.id}`);
-          floodRings.push(ring);
-        };
+          if (strategy === ROUTE_VIA.DIRECT) {
+            const packet = findInterestingRoute(source);
+            if (packet) packets.push(packet);
+          } else if (strategy === ROUTE_VIA.FLOOD) {
+            const floodId = generateId();
+            const ring = createFloodRing(source, floodId);
+            processedFloodIds.add(`${floodId}-${source.id}`);
+            floodRings.push(ring);
+          } else {
+            console.warn("Unknown routing strategy:", strategy);
+          }
+        }
 
         const resetNetwork = () => {
           cancelAnimationFrame(animationFrame);
@@ -775,20 +781,20 @@
 
           minNodeDistance = isMobileDevice() ? 40 : 70;
 
-          messageConfig = {
-            ...DEFAULT_MESSAGE_CONFIG,
-            size: DEFAULT_MESSAGE_CONFIG.size * sizeFactor,
-            pulseGrowth: DEFAULT_MESSAGE_CONFIG.pulseGrowth * sizeFactor,
-            speed: DEFAULT_MESSAGE_CONFIG.speed * sizeFactor,
+          packetConfig = {
+            ...DEFAULT_PACKET_CONFIG,
+            size: DEFAULT_PACKET_CONFIG.size * sizeFactor,
+            pulseGrowth: DEFAULT_PACKET_CONFIG.pulseGrowth * sizeFactor,
+            speed: DEFAULT_PACKET_CONFIG.speed * sizeFactor,
           };
         };
 
         function initNetwork(clientCount = null, repeaterCount = null) {
           // Reset simulation state
           nodes = [];
-          messages = [];
+          packets = [];
+          packetPool = [];
           floodRings = [];
-          messagePool = [];
           floodRingPool = [];
           processedFloodIds = new Set();
           hoveredNode = null;
@@ -807,7 +813,7 @@
           placeNodes(NODE_TYPES.REPEATER);
           placeNodes(NODE_TYPES.CLIENT);
 
-          autoSendDelay = 0;
+          nextDispatchAt = Date.now();
         }
 
         // --- DRAWING FUNCTIONS ---
@@ -836,18 +842,18 @@
           });
         };
 
-        // Draw message routes (faint lines showing the path)
-        const drawMessageRoutes = () => {
-          messages.forEach((message) => {
-            if (message.type !== messageConfig.types.DIRECT) return;
-            if (message.delivered) return;
+        // Draw packet paths (faint lines showing the route)
+        const drawPacketRoutes = () => {
+          packets.forEach((packet) => {
+            if (packet.strategy !== ROUTE_VIA.DIRECT) return;
+            if (packet.delivered) return;
 
             ctx.beginPath();
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = hslToHSLA(messageConfig.color, 0.5);
+            ctx.strokeStyle = hslToHSLA(packetConfig.color, 0.5);
             ctx.lineWidth = 1;
 
-            const route = message.route;
+            const route = packet.route;
             ctx.moveTo(route[0].x, route[0].y);
 
             for (let i = 1; i < route.length; i++) {
@@ -859,14 +865,14 @@
           });
         };
 
-        // Draw trails behind messages
-        const drawMessageTrails = () => {
-          messages.forEach((message) => {
-            if (message.type !== messageConfig.types.DIRECT) return;
-            if (!message.trail || message.trail.length < 2) return;
+        // Draw trails behind packets
+        const drawPacketTrails = () => {
+          packets.forEach((packet) => {
+            if (packet.strategy !== ROUTE_VIA.DIRECT) return;
+            if (!packet.trail || packet.trail.length < 2) return;
 
             ctx.beginPath();
-            const trail = message.trail;
+            const trail = packet.trail;
             ctx.moveTo(trail[0].x, trail[0].y);
 
             for (let i = 1; i < trail.length; i++) {
@@ -885,8 +891,8 @@
               trail[trail.length - 1].x,
               trail[trail.length - 1].y,
             );
-            gradient.addColorStop(0, hslToHSLA(messageConfig.color, 0));
-            gradient.addColorStop(1, hslToHSLA(messageConfig.color, 0.5));
+            gradient.addColorStop(0, hslToHSLA(packetConfig.color, 0));
+            gradient.addColorStop(1, hslToHSLA(packetConfig.color, 0.5));
 
             ctx.strokeStyle = gradient;
             ctx.lineWidth = 3;
@@ -942,36 +948,36 @@
           });
         };
 
-        const drawMessages = () => {
-          messages.forEach((message) => {
-            if (message.type !== messageConfig.types.DIRECT) return;
+        const drawPackets = () => {
+          packets.forEach((packet) => {
+            if (packet.strategy !== ROUTE_VIA.DIRECT) return;
 
-            const color = messageConfig.color;
+            const color = packetConfig.color;
 
-            if (message.delivered) {
+            if (packet.delivered) {
               // Draw delivery effect (growing pulse)
-              const easedProgress = Math.pow(message.progress, 0.5);
+              const easedProgress = Math.pow(packet.progress, 0.5);
 
               ctx.beginPath();
               ctx.arc(
-                message.x,
-                message.y,
-                message.size + easedProgress * messageConfig.pulseGrowth,
+                packet.x,
+                packet.y,
+                packet.size + easedProgress * packetConfig.pulseGrowth,
                 0,
                 Math.PI * 2,
               );
-              ctx.fillStyle = hslToHSLA(messageConfig.color, 1 - easedProgress);
+              ctx.fillStyle = hslToHSLA(packetConfig.color, 1 - easedProgress);
               ctx.fill();
             }
 
-            // Draw message (circle)
+            // Draw packet (circle)
             ctx.beginPath();
-            ctx.arc(message.x, message.y, message.size, 0, Math.PI * 2);
+            ctx.arc(packet.x, packet.y, packet.size, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.fill();
 
-            // Add a white border to make messages more visible
-            ctx.strokeStyle = messageConfig.borderColor;
+            // Add a border to make packets more visible
+            ctx.strokeStyle = packetConfig.borderColor;
             ctx.lineWidth = 1;
             ctx.stroke();
           });
@@ -990,17 +996,17 @@
 
           drawNodeRanges();
           drawFloodRings();
-          drawMessageRoutes();
-          drawMessageTrails();
+          drawPacketRoutes();
+          drawPacketTrails();
           drawNodes();
-          drawMessages();
+          drawPackets();
         };
 
         // --- SIMULATION UPDATE FUNCTIONS ---
 
-        function updateDeliveredMessage(message, deltaTime) {
-          message.progress += deltaTime / MESSAGE_FADE_DURATION;
-          return message.progress >= 1;
+        function updateDeliveredPacket(packet, deltaTime) {
+          packet.progress += deltaTime / PACKET_FADE_DURATION;
+          return packet.progress >= 1;
         }
 
         /**
@@ -1020,51 +1026,51 @@
           return dist === 0 ? { x: 0, y: 0 } : { x: dx / dist, y: dy / dist };
         }
 
-        function advanceMessage(message, deltaTime) {
-          const next = message.route[message.currentHopIndex + 1];
+        function advancePacket(packet, deltaTime) {
+          const next = packet.route[packet.currentHopIndex + 1];
           const now = performance.now();
 
-          message.trail.push({ x: message.x, y: message.y, time: now });
+          packet.trail.push({ x: packet.x, y: packet.y, time: now });
 
           const trailDuration = 150; // milliseconds of trail to keep
-          message.trail = message.trail.filter(
+          packet.trail = packet.trail.filter(
             (p) => now - p.time <= trailDuration,
           );
 
-          const distToNext = getDistance(message, next);
-          const moveDist = messageConfig.speed * deltaTime;
+          const distToNext = getDistance(packet, next);
+          const moveDist = packetConfig.speed * deltaTime;
 
           if (moveDist >= distToNext) {
             // Reached next hop
-            message.x = next.x;
-            message.y = next.y;
-            message.currentHopIndex++;
-            message.trail = [];
+            packet.x = next.x;
+            packet.y = next.y;
+            packet.currentHopIndex++;
+            packet.trail = [];
 
-            if (message.currentHopIndex === message.route.length - 1) {
-              message.delivered = true;
-              message.progress = 0;
+            if (packet.currentHopIndex === packet.route.length - 1) {
+              packet.delivered = true;
+              packet.progress = 0;
             }
           } else {
             // Move toward next hop
-            const direction = getUnitVector(message, next);
-            message.x += direction.x * moveDist;
-            message.y += direction.y * moveDist;
+            const direction = getUnitVector(packet, next);
+            packet.x += direction.x * moveDist;
+            packet.y += direction.y * moveDist;
           }
         }
 
-        function updateMessages(deltaTime) {
-          for (let i = messages.length - 1; i >= 0; i--) {
-            const message = messages[i];
-            if (message.type !== messageConfig.types.DIRECT) continue;
+        function updatePackets(deltaTime) {
+          for (let i = packets.length - 1; i >= 0; i--) {
+            const packet = packets[i];
+            if (packet.strategy !== ROUTE_VIA.DIRECT) continue;
 
-            if (message.delivered) {
-              if (updateDeliveredMessage(message, deltaTime)) {
-                messages.splice(i, 1);
-                messagePool.push(message); // recycle
+            if (packet.delivered) {
+              if (updateDeliveredPacket(packet, deltaTime)) {
+                packets.splice(i, 1);
+                packetPool.push(packet); // recycle
               }
             } else {
-              advanceMessage(message, deltaTime);
+              advancePacket(packet, deltaTime);
             }
           }
         }
@@ -1132,29 +1138,30 @@
           }
         };
 
-        function maybeSendAutoMessages() {
+        function maybeDispatchPackets() {
           const now = Date.now();
-          if (now - autoSendTimestamp <= autoSendDelay) return;
+          if (now < nextDispatchAt) return;
 
           const clients = nodes.filter((n) => n.type === NODE_TYPES.CLIENT);
           if (!clients.length) return;
 
-          const { delay, delayVariance, batchSize } = messageConfig.autoSend;
+          const { delay, delayVariance, batchSize } = packetConfig.autoDispatch;
           for (let i = 0; i < batchSize; i++) {
             setTimeout(() => {
               const source =
                 clients[Math.floor(Math.random() * clients.length)];
-              Math.random() < 0.05
-                ? sendFlood(source.id)
-                : sendMessage(source.id);
+              const strategy =
+                Math.random() < 0.05 ? ROUTE_VIA.FLOOD : ROUTE_VIA.DIRECT;
+              dispatchPacket({ id: source.id, strategy });
             }, i * 120);
           }
 
-          autoSendTimestamp = now;
-          autoSendDelay = delay + getRandomInt(-delayVariance, delayVariance);
+          dispatchCooldown =
+            delay + getRandomInt(-delayVariance, delayVariance);
+          nextDispatchAt = now + dispatchCooldown;
         }
 
-        function scheduleAutoMessages() {
+        function schedulePacketDispatch() {
           const idleCallback =
             window.requestIdleCallback ||
             function (cb) {
@@ -1162,8 +1169,8 @@
             };
 
           idleCallback(() => {
-            if (nodes.length && animationRunning) maybeSendAutoMessages();
-            scheduleAutoMessages(); // schedule the next idle callback
+            if (nodes.length && animationRunning) maybeDispatchPackets();
+            schedulePacketDispatch(); // loop
           });
         }
 
@@ -1311,7 +1318,10 @@
             );
 
             if (clickedNode && clickedNode.type === NODE_TYPES.CLIENT) {
-              sendMessage(clickedNode.id);
+              dispatchPacket({
+                id: clickedNode.id,
+                strategy: ROUTE_VIA.DIRECT,
+              });
             }
 
             hoveredNode = clickedNode;
@@ -1340,7 +1350,7 @@
           const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
           lastFrameTime = timestamp;
 
-          updateMessages(deltaTime);
+          updatePackets(deltaTime);
           updateFloods(deltaTime);
           renderFrame();
 
@@ -1358,11 +1368,12 @@
           const controlsContainer =
             document.getElementById("controls-container");
 
-          BUTTON_CONFIGS.forEach(({ id, icon, label }) => {
+          BUTTON_CONFIGS.forEach(({ id, icon, label, title }) => {
             const [iconSymbol, labelText] = [icon, label];
             const button = document.createElement("button");
             button.id = id;
             button.innerHTML = `<span class="icon">${iconSymbol}</span> ${labelText}`;
+            if (title) button.title = title;
             controlsContainer.appendChild(button);
           });
 
@@ -1375,7 +1386,7 @@
           resizeCanvas();
           applyScaling();
           initNetwork();
-          scheduleAutoMessages();
+          schedulePacketDispatch();
           setupEventListeners();
           animate(performance.now());
         };
