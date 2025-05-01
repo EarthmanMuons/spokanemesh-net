@@ -18,7 +18,7 @@
         --text-color: hsl(0, 0%, 20%); /* #333333 */
         --button-bg: hsl(200, 54%, 54%); /* #4a9fc9 */
         --button-hover: hsl(205, 49%, 34%); /* #2d5e82 */
-        --button-active: hsl(85, 40%, 45%); /* #7aa145 */
+        --button-clicked: hsl(85, 40%, 45%); /* #7aa145 */
         --button-text: hsl(0, 0%, 100%); /* #ffffff */
       }
 
@@ -154,8 +154,8 @@
         background-color: var(--button-hover);
       }
 
-      .controls button:active {
-        background-color: var(--button-active);
+      .controls button.clicked {
+        background-color: var(--button-clicked);
       }
 
       .icon {
@@ -354,15 +354,16 @@
 
         let nodeConfigs;
         let minNodeDistance;
-        let hoveredNode = null;
 
         let packetConfig;
         let autoDispatchState = {
           nextTime: Date.now(),
           interval: 0,
         };
-
         let floodRingSpeed;
+
+        let hoveredNode = null;
+        let clickedButton = null;
 
         let animationRunning = true;
         let initialLayoutDone = false;
@@ -1267,8 +1268,25 @@
           BUTTONS.forEach(({ id, action }) => {
             const button = document.getElementById(id);
             if (button && action) {
-              button.addEventListener("mousedown", (e) => {
+              button.addEventListener("pointerdown", (e) => {
+                e.preventDefault();
+                clickedButton = button;
+                button.classList.add("clicked");
                 action();
+              });
+
+              button.addEventListener("pointerup", () => {
+                if (clickedButton) {
+                  clickedButton.classList.remove("clicked");
+                  clickedButton = null;
+                }
+              });
+
+              button.addEventListener("pointerleave", () => {
+                if (clickedButton) {
+                  clickedButton.classList.remove("clicked");
+                  clickedButton = null;
+                }
               });
             }
           });
