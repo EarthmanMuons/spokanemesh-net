@@ -125,6 +125,7 @@
         padding: 1rem;
         max-width: 1200px;
         margin: 0 auto;
+        user-select: none;
       }
 
       .controls button {
@@ -140,7 +141,10 @@
         display: flex;
         align-items: center;
         gap: 0.4rem;
-        touch-action: manipulation; /* disables double-tap zoom */
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
       }
 
       .controls button .icon {
@@ -267,7 +271,6 @@
           size: 7, // px radius of packet circle
           speed: 320, // px per second
           maxHops: 6,
-          deliveryPulseSize: 15, // px radius for delivery animation
           color: PACKET_COLOR,
           borderColor: PACKET_COLOR_BORDER,
         };
@@ -780,9 +783,6 @@
           packetConfig = {
             ...DEFAULT_PACKET_CONFIG,
             size: scaleForMobile(DEFAULT_PACKET_CONFIG.size),
-            deliveryPulseSize: scaleForMobile(
-              DEFAULT_PACKET_CONFIG.deliveryPulseSize,
-            ),
             speed: scaleForMobile(DEFAULT_PACKET_CONFIG.speed),
           };
 
