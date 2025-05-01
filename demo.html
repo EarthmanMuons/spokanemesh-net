@@ -412,25 +412,36 @@
           return node;
         }
 
+        function getCandidateCoords(useGrid, col, row, cellW, cellH, radius) {
+          if (useGrid) {
+            return {
+              x: col * cellW + cellW * (0.25 + Math.random() * 0.5),
+              y: row * cellH + cellH * (0.25 + Math.random() * 0.5),
+            };
+          } else {
+            return {
+              x: getRandomInt(radius * 2, baseWidth - radius * 2),
+              y: getRandomInt(radius * 2, baseHeight - radius * 2),
+            };
+          }
+        }
+
         function isTooClose(x, y) {
           return nodes.some((n) => getDistance({ x, y }, n) < minNodeDistance);
         }
 
         function placeNodeRandomly(node, useGrid, col, row, cellW, cellH) {
           for (let i = 0; i < PLACEMENT_ATTEMPTS_MAX; i++) {
-            if (useGrid) {
-              node.x = col * cellW + cellW * (0.25 + Math.random() * 0.5);
-              node.y = row * cellH + cellH * (0.25 + Math.random() * 0.5);
-            } else {
-              node.x = getRandomInt(
-                node.radius * 2,
-                baseWidth - node.radius * 2,
-              );
-              node.y = getRandomInt(
-                node.radius * 2,
-                baseHeight - node.radius * 2,
-              );
-            }
+            const { x, y } = getCandidateCoords(
+              useGrid,
+              col,
+              row,
+              cellW,
+              cellH,
+              node.radius,
+            );
+            node.x = x;
+            node.y = y;
 
             if (!isTooClose(node.x, node.y)) return true;
           }
