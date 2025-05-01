@@ -262,11 +262,6 @@
           size: 7,
           speed: 320, // pixels per second
           maxHops: 6,
-          autoDispatch: {
-            delay: 1200, // milliseconds
-            delayVariance: 500, // milliseconds
-            batchSize: 4, // packets per interval
-          },
           deliveryPulseSize: 15,
           color: PACKET_COLOR,
           borderColor: PACKET_COLOR_BORDER,
@@ -275,6 +270,12 @@
         const RoutingStrategy = {
           DIRECT: "direct", // unicast
           FLOOD: "flood", // broadcast
+        };
+
+        const AUTO_DISPATCH_CONFIG = {
+          minInterval: 700,
+          maxInterval: 1700,
+          batchSize: 4,
         };
 
         const BUTTON_CONFIGS = [
@@ -351,9 +352,12 @@
         let hoveredNode = null;
 
         let packetConfig;
+        let autoDispatchState = {
+          nextTime: Date.now(),
+          interval: 0,
+        };
+
         let floodRingSpeed;
-        let nextDispatchAt = Date.now();
-        let dispatchCooldown = 0;
 
         let animationRunning = true;
         let initialLayoutDone = false;
@@ -804,7 +808,7 @@
           layoutNodes(NodeType.REPEATER);
           layoutNodes(NodeType.CLIENT);
 
-          nextDispatchAt = Date.now();
+          autoDispatchState.nextTime = Date.now();
         }
 
         // --- DRAWING FUNCTIONS ---
@@ -1132,12 +1136,12 @@
 
         function dispatchAutoPackets() {
           const now = Date.now();
-          if (now < nextDispatchAt) return;
+          if (now < autoDispatchState.nextTime) return;
 
           const clients = nodes.filter((n) => n.type === NodeType.CLIENT);
           if (!clients.length) return;
 
-          const { delay, delayVariance, batchSize } = packetConfig.autoDispatch;
+          const { minInterval, maxInterval, batchSize } = AUTO_DISPATCH_CONFIG;
           for (let i = 0; i < batchSize; i++) {
             setTimeout(() => {
               const source =
@@ -1150,9 +1154,8 @@
             }, i * 120);
           }
 
-          dispatchCooldown =
-            delay + getRandomInt(-delayVariance, delayVariance);
-          nextDispatchAt = now + dispatchCooldown;
+          autoDispatchState.interval = getRandomInt(minInterval, maxInterval);
+          autoDispatchState.nextTime = now + autoDispatchState.interval;
         }
 
         function schedulePacketDispatch() {
