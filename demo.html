@@ -1314,11 +1314,22 @@
               (n) => getDistance(n, { x, y }) <= n.size,
             );
 
-            if (clickedNode && clickedNode.type === NodeType.CLIENT) {
-              dispatchPacket({
-                id: clickedNode.id,
-                strategy: RoutingStrategy.DIRECT,
-              });
+            if (clickedNode) {
+              switch (clickedNode.type) {
+                case NodeType.CLIENT:
+                  dispatchPacket({
+                    id: clickedNode.id,
+                    strategy: RoutingStrategy.DIRECT,
+                  });
+                  break;
+
+                case NodeType.REPEATER:
+                  dispatchPacket({
+                    id: clickedNode.id,
+                    strategy: RoutingStrategy.FLOOD,
+                  });
+                  break;
+              }
             }
 
             hoveredNode = clickedNode;
