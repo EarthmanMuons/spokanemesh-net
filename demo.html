@@ -28,20 +28,6 @@
         box-sizing: border-box;
       }
 
-      #debug-info {
-        position: fixed;
-        bottom: 8px;
-        right: 8px;
-        background: rgba(0, 0, 0, 0.6);
-        color: #00ff00;
-        font-family: monospace;
-        font-size: 12px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        z-index: 9999;
-        pointer-events: none;
-      }
-
       body {
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
@@ -98,13 +84,18 @@
         color: white;
       }
 
-      #mesh-canvas {
+      .canvas-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 1;
       }
 
       .fallback-image {
@@ -171,6 +162,20 @@
         height: auto;
       }
 
+      #debug-info {
+        position: fixed;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #00ff00;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
       @media (max-width: 768px) {
         .hero-title {
           font-size: 1.8rem;
@@ -206,7 +211,10 @@
           </p>
         </div>
       </div>
-      <canvas id="mesh-canvas"></canvas>
+      <div class="canvas-wrapper">
+        <canvas id="static-canvas"></canvas>
+        <canvas id="dynamic-canvas"></canvas>
+      </div>
       <noscript>
         <div class="fallback-image">
           <div>
@@ -341,8 +349,12 @@
 
         // --- STATE VARIABLES ---
 
-        let canvas;
-        let ctx;
+        let staticCanvas;
+        let staticCtx;
+        let dynamicCanvas;
+        let dynamicCtx;
+        let needsStaticRedraw = true;
+
         let dpr = window.devicePixelRatio || 1;
         let simWidth;
         let simHeight;
@@ -369,7 +381,6 @@
         let clickedButton = null;
 
         let animationRunning = true;
-        let initialLayoutDone = false;
         let animationFrame = null;
         let lastFrameTime = 0;
         let hoverFrame = null;
@@ -662,6 +673,7 @@
           if (success) {
             nodes.push(node);
             computeNeighbors();
+            needsStaticRedraw = true;
           }
         };
 
@@ -769,6 +781,7 @@
 
         const resetNetwork = () => {
           cancelAnimationFrame(animationFrame);
+          resizeCanvases();
           applyScaling();
           initNetwork();
           animate(performance.now());
@@ -833,7 +846,7 @@
         // --- DRAWING FUNCTIONS ---
 
         // Draw transmission range for nodes
-        const drawNodeRanges = () => {
+        const drawNodeRanges = (ctx) => {
           nodes.forEach((node) => {
             ctx.beginPath();
             ctx.arc(node.x, node.y, node.range, 0, Math.PI * 2);
@@ -846,7 +859,7 @@
           });
         };
 
-        const drawFloodRings = () => {
+        const drawFloodRings = (ctx) => {
           floodRings.forEach((ring) => {
             ctx.beginPath();
             ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
@@ -857,7 +870,7 @@
         };
 
         // Draw packet paths (faint lines showing the route)
-        const drawPacketRoutes = () => {
+        const drawPacketRoutes = (ctx) => {
           packets.forEach((packet) => {
             if (packet.strategy !== RoutingStrategy.DIRECT) return;
             if (packet.delivered) return;
@@ -880,7 +893,7 @@
         };
 
         // Draw trails behind packets
-        const drawPacketTrails = () => {
+        const drawPacketTrails = (ctx) => {
           packets.forEach((packet) => {
             if (packet.strategy !== RoutingStrategy.DIRECT) return;
             if (!packet.trail || packet.trail.length < 2) return;
@@ -914,14 +927,10 @@
           });
         };
 
-        const drawHexagon = ({
-          x,
-          y,
-          size,
-          fillColor,
-          borderColor,
-          lineWidth = 1.5,
-        }) => {
+        const drawHexagon = (
+          ctx,
+          { x, y, size, fillColor, borderColor, lineWidth = 1.5 },
+        ) => {
           const numberOfSides = 6;
           const a = (Math.PI * 2) / numberOfSides;
 
@@ -944,14 +953,14 @@
           ctx.stroke();
         };
 
-        const drawNodes = () => {
+        const drawNodes = (ctx) => {
           nodes.forEach((node) => {
             const config = getNodeConfig(node.type);
             if (!config) return;
 
             const isHovered = hoveredNode && node.id === hoveredNode.id;
 
-            drawHexagon({
+            drawHexagon(ctx, {
               x: node.x,
               y: node.y,
               size: node.size,
@@ -962,7 +971,7 @@
           });
         };
 
-        const drawPackets = () => {
+        const drawPackets = (ctx) => {
           packets.forEach((packet) => {
             if (packet.strategy !== RoutingStrategy.DIRECT) return;
 
@@ -992,24 +1001,37 @@
           });
         };
 
-        // Draw all elements on canvas
-        const renderFrame = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function renderStaticLayer() {
+          staticCtx.clearRect(0, 0, staticCanvas.width, staticCanvas.height);
+          staticCtx.save();
+          staticCtx.translate(offsetX, offsetY);
 
-          const scaledWidth = canvas.width / dpr;
-          const scaledHeight = canvas.height / dpr;
+          drawNodeRanges(staticCtx);
+          drawNodes(staticCtx);
 
-          // Calculate the center offset to position the network in the middle
-          const offsetX = (scaledWidth - simWidth) / 2;
-          const offsetY = (scaledHeight - simHeight) / 2;
+          staticCtx.restore();
+        }
 
-          drawNodeRanges();
-          drawNodes();
-          drawPacketRoutes();
-          drawFloodRings();
-          drawPacketTrails();
-          drawPackets();
-        };
+        function renderDynamicLayer() {
+          dynamicCtx.clearRect(0, 0, dynamicCanvas.width, dynamicCanvas.height);
+          dynamicCtx.save();
+          dynamicCtx.translate(offsetX, offsetY);
+
+          drawFloodRings(dynamicCtx);
+          drawPacketRoutes(dynamicCtx);
+          drawPacketTrails(dynamicCtx);
+          drawPackets(dynamicCtx);
+
+          dynamicCtx.restore();
+        }
+
+        function renderFrame() {
+          if (needsStaticRedraw) {
+            renderStaticLayer();
+            needsStaticRedraw = false;
+          }
+          renderDynamicLayer();
+        }
 
         // --- SIMULATION UPDATE FUNCTIONS ---
 
@@ -1196,47 +1218,32 @@
 
         // --- UI / EVENT FUNCTIONS ---
 
-        // Resize canvas to match container with scaling
-        const resizeCanvas = () => {
-          const container = canvas.parentElement;
+        // Resize canvases to match container with scaling
+        function resizeCanvases() {
+          const container = staticCanvas.parentElement;
           const newWidth = container.offsetWidth;
           const newHeight = container.offsetHeight;
 
-          canvas.width = newWidth * dpr;
-          canvas.height = newHeight * dpr;
-          canvas.style.width = newWidth + "px";
-          canvas.style.height = newHeight + "px";
+          [staticCanvas, dynamicCanvas].forEach((canvas) => {
+            canvas.width = newWidth * dpr;
+            canvas.height = newHeight * dpr;
+            canvas.style.width = newWidth + "px";
+            canvas.style.height = newHeight + "px";
+          });
 
-          ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transforms
-          ctx.scale(dpr, dpr);
+          staticCtx.setTransform(1, 0, 0, 1, 0, 0);
+          dynamicCtx.setTransform(1, 0, 0, 1, 0, 0);
+          staticCtx.scale(dpr, dpr);
+          dynamicCtx.scale(dpr, dpr);
 
-          if (!initialLayoutDone) {
-            simWidth = newWidth;
-            simHeight = newHeight;
-            initialLayoutDone = true;
-          } else {
-            const clientCount = nodes.filter(
-              (n) => n.type === NodeType.CLIENT,
-            ).length;
-            const repeaterCount = nodes.filter(
-              (n) => n.type === NodeType.REPEATER,
-            ).length;
+          simWidth = newWidth;
+          simHeight = newHeight;
 
-            // Pause animation and reset cleanly
-            animationRunning = false;
-            cancelAnimationFrame(animationFrame);
+          offsetX = (newWidth - simWidth) / 2;
+          offsetY = (newHeight - simHeight) / 2;
 
-            simWidth = newWidth;
-            simHeight = newHeight;
-
-            // Reinitialize with current node counts
-            applyScaling();
-            initNetwork(clientCount, repeaterCount);
-
-            animationRunning = true;
-            animate(performance.now());
-          }
-        };
+          needsStaticRedraw = true;
+        }
 
         function setupResizeListener() {
           window.addEventListener(
@@ -1247,8 +1254,7 @@
                 if (window.devicePixelRatio !== dpr) {
                   dpr = window.devicePixelRatio || 1;
                 }
-
-                resizeCanvas();
+                resetNetwork();
               }, 250);
             },
             { passive: true },
@@ -1309,27 +1315,22 @@
           });
         }
 
-        function setupNodeHoverListener() {
+        function setupNodeHoverListener(canvas) {
           canvas.addEventListener(
             "pointermove",
             (e) => {
-              if (hoverFrame) return;
+              const rect = canvas.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
 
-              hoverFrame = requestAnimationFrame(() => {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+              newHoveredNode = nodes.find(
+                (n) => getSquaredDistance(n, { x, y }) <= n.size * n.size,
+              );
 
-                hoveredNode = nodes.find(
-                  (n) => getSquaredDistance(n, { x, y }) <= n.size * n.size,
-                );
-
-                if (hoveredNode && !animationRunning) {
-                  draw(); // force one frame
-                }
-
-                hoverFrame = null;
-              });
+              if (newHoveredNode?.id !== hoveredNode?.id) {
+                hoveredNode = newHoveredNode;
+                needsStaticRedraw = true;
+              }
             },
             { passive: true },
           );
@@ -1338,12 +1339,13 @@
             "pointerleave",
             () => {
               hoveredNode = null;
+              needsStaticRedraw = true;
             },
             { passive: true },
           );
         }
 
-        function setupNodeClickListener() {
+        function setupNodeClickListener(canvas) {
           canvas.addEventListener("pointerdown", (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -1370,8 +1372,6 @@
                   break;
               }
             }
-
-            hoveredNode = clickedNode;
           });
         }
 
@@ -1379,8 +1379,8 @@
           setupResizeListener();
           setupVisibilityObserver();
           setupButtonListeners();
-          setupNodeHoverListener();
-          setupNodeClickListener();
+          setupNodeHoverListener(dynamicCanvas);
+          setupNodeClickListener(dynamicCanvas);
         }
 
         // Animation loop
@@ -1410,8 +1410,12 @@
         // --- INITIALIZATION ---
 
         const init = () => {
-          canvas = document.getElementById("mesh-canvas");
-          ctx = canvas.getContext("2d");
+          staticCanvas = document.getElementById("static-canvas");
+          dynamicCanvas = document.getElementById("dynamic-canvas");
+
+          staticCtx = staticCanvas.getContext("2d");
+          dynamicCtx = dynamicCanvas.getContext("2d");
+
           const controlsContainer =
             document.getElementById("controls-container");
 
@@ -1430,12 +1434,9 @@
             document.body.appendChild(debugInfoElement);
           }
 
-          resizeCanvas();
-          applyScaling();
-          initNetwork();
+          resetNetwork();
           schedulePacketDispatch();
           setupEventListeners();
-          animate(performance.now());
         };
 
         if (document.readyState !== "loading") init();
