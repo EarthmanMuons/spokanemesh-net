@@ -286,7 +286,7 @@
             id: "send-direct",
             icon: "→",
             label: "Send Direct",
-            title: "Unicast to a single client",
+            title: "Dispatch multiple unicast packets between client nodes",
             action: () => {
               dispatchPacket({ strategy: ROUTE_VIA.DIRECT });
               setTimeout(
@@ -303,7 +303,7 @@
             id: "send-flood",
             icon: "➜",
             label: "Send Flood",
-            title: "Broadcast to all nodes within range",
+            title: "Dispatch a broadcast packet to nearby nodes",
             action: () => dispatchPacket({ strategy: ROUTE_VIA.FLOOD }),
           },
           {
@@ -329,8 +329,8 @@
           },
         ];
 
-        const TARGET_FPS = isMobileDevice() ? 30 : 60;
-        const MIN_FRAME_DELAY = 1000 / TARGET_FPS;
+        const FPS_TARGET = isMobileDevice() ? 30 : 60;
+        const FRAME_DELAY_MIN = 1000 / FPS_TARGET;
 
         const FLOOD_RING_SPEED = isMobileDevice() ? 120 : 180; // pixels per second
         const PACKET_FADE_DURATION = 0.6; // seconds
@@ -350,11 +350,11 @@
         let packetPool = [];
         let floodRings = [];
         let floodRingPool = [];
-        let processedFloodIds = new Set();
+        let floodsProcessed = new Set();
         let hoveredNode = null;
 
         let nodeConfigs;
-        let minNodeDistance;
+        let nodeDistanceMin;
         let packetConfig;
 
         let nextDispatchAt = Date.now();
@@ -367,8 +367,6 @@
         let lastFrameTime = 0;
 
         let scaleFactor = 1;
-        let targetScaleFactor = 1;
-        let scaleVelocity = 0;
 
         let fpsDisplay = null;
         let lastDrawTime = 0;
@@ -439,7 +437,7 @@
         }
 
         function isTooClose(x, y) {
-          return nodes.some((n) => getDistance({ x, y }, n) < minNodeDistance);
+          return nodes.some((n) => getDistance({ x, y }, n) < nodeDistanceMin);
         }
 
         function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
@@ -517,21 +515,19 @@
          * - Returns a path as an array of node { id, x, y } objects, always including the source.
          * - If no valid route is found, returns a single-element array with only the source.
          *
-         * @param {Object} sourceNode - The starting node.
-         * @param {Object} targetNode - The destination node.
+         * @param {Object} source - The starting node.
+         * @param {Object} target - The destination node.
          * @returns {Array} Array of hops (each with id, x, y).
          */
-        function findRoute(sourceNode, targetNode) {
+        function findRoute(source, target) {
           const visited = new Set();
-          const queue = [
-            [{ id: sourceNode.id, x: sourceNode.x, y: sourceNode.y }],
-          ];
+          const queue = [[{ id: source.id, x: source.x, y: source.y }]];
 
           while (queue.length > 0) {
             const path = queue.shift();
             const last = path[path.length - 1];
 
-            if (last.id === targetNode.id) {
+            if (last.id === target.id) {
               // Validate intermediate hops (must be repeaters if path length > 2)
               if (
                 path.length <= 2 ||
@@ -564,15 +560,15 @@
           }
 
           // No valid route found
-          return [{ id: sourceNode.id, x: sourceNode.x, y: sourceNode.y }];
+          return [{ id: source.id, x: source.x, y: source.y }];
         }
 
         /**
          * Creates a direct (non-flood) packet between two clients.
          * May be single-hop or multi-hop (via repeaters), depending on network topology.
          */
-        function createDirectPacket(sourceNode, targetNode) {
-          const route = findRoute(sourceNode, targetNode);
+        function createDirectPacket(source, target) {
+          const route = findRoute(source, target);
 
           if (
             route.length === 1 || // no valid path
@@ -603,10 +599,10 @@
           Object.assign(msg, {
             id: generateId(),
             strategy: ROUTE_VIA.DIRECT,
-            sourceId: sourceNode.id,
-            targetId: targetNode.id,
-            x: sourceNode.x,
-            y: sourceNode.y,
+            sourceId: source.id,
+            targetId: target.id,
+            x: source.x,
+            y: source.y,
             size: packetConfig.size,
             route,
             currentHopIndex: 0,
@@ -619,7 +615,7 @@
         }
 
         // Create a flood ring (visualization for broadcasts)
-        function createFloodRing(sourceNode, originalFloodId = null) {
+        function createFloodRing(source, originalFloodId = null) {
           const floodId = originalFloodId || generateId();
 
           let ring = floodRingPool.pop();
@@ -643,11 +639,11 @@
           Object.assign(ring, {
             id: generateId(),
             floodId,
-            sourceId: sourceNode.id,
-            x: sourceNode.x,
-            y: sourceNode.y,
+            sourceId: source.id,
+            x: source.x,
+            y: source.y,
             radius: 0,
-            maxRadius: sourceNode.range,
+            maxRadius: source.range,
             expandSpeed: FLOOD_RING_SPEED,
             opacity: 0.7,
           });
@@ -668,26 +664,24 @@
           return clients[Math.floor(Math.random() * clients.length)];
         }
 
-        function clientsInRange(sourceNode) {
-          return getNeighbors(sourceNode).filter(
-            (n) => n.type === NODE_TYPES.CLIENT,
-          );
+        function clientsInRange(node) {
+          return getNeighbors(node).filter((n) => n.type === NODE_TYPES.CLIENT);
         }
 
-        function clientsOutOfRange(sourceNode) {
+        function clientsOutOfRange(node) {
           return nodes.filter(
             (n) =>
               n.type === NODE_TYPES.CLIENT &&
-              n.id !== sourceNode.id &&
-              getDistance(sourceNode, n) > sourceNode.range,
+              n.id !== node.id &&
+              getDistance(node, n) > node.range,
           );
         }
 
-        function tryMultiHopRoute(sourceNode, candidates) {
+        function tryMultiHopRoute(source, candidates) {
           for (let i = 0; i < 3; i++) {
             const target =
               candidates[Math.floor(Math.random() * candidates.length)];
-            const msg = createDirectPacket(sourceNode, target);
+            const msg = createDirectPacket(source, target);
             if (!msg) continue;
 
             // Prefer longer paths
@@ -700,21 +694,21 @@
           return null;
         }
 
-        function tryAnyRoute(sourceNode, candidates) {
+        function tryAnyRoute(source, candidates) {
           for (const target of candidates) {
-            const msg = createDirectPacket(sourceNode, target);
+            const msg = createDirectPacket(source, target);
             if (msg) return msg;
           }
           return null;
         }
 
-        function findInterestingRoute(sourceNode) {
-          const nearbyClients = clientsInRange(sourceNode);
-          const distantClients = clientsOutOfRange(sourceNode);
+        function findInterestingRoute(source) {
+          const nearbyClients = clientsInRange(source);
+          const distantClients = clientsOutOfRange(source);
 
           // Prefer multi-hop routes (visually interesting, activates repeaters)
           if (distantClients.length > 0 && Math.random() < 0.8) {
-            const msg = tryMultiHopRoute(sourceNode, distantClients);
+            const msg = tryMultiHopRoute(source, distantClients);
             if (msg) return msg;
           }
 
@@ -722,13 +716,13 @@
           if (nearbyClients.length > 0) {
             const target =
               nearbyClients[Math.floor(Math.random() * nearbyClients.length)];
-            const msg = createDirectPacket(sourceNode, target);
+            const msg = createDirectPacket(source, target);
             if (msg) return msg;
           }
 
           // As a last resort, try *any* valid route to a distant client
           if (distantClients.length > 0) {
-            const msg = tryAnyRoute(sourceNode, distantClients);
+            const msg = tryAnyRoute(source, distantClients);
             if (msg) return msg;
           }
 
@@ -747,7 +741,7 @@
           } else if (strategy === ROUTE_VIA.FLOOD) {
             const floodId = generateId();
             const ring = createFloodRing(source, floodId);
-            processedFloodIds.add(`${floodId}-${source.id}`);
+            floodsProcessed.add(`${floodId}-${source.id}`);
             floodRings.push(ring);
           } else {
             console.warn("Unknown routing strategy:", strategy);
@@ -779,7 +773,7 @@
             };
           });
 
-          minNodeDistance = isMobileDevice() ? 40 : 70;
+          nodeDistanceMin = isMobileDevice() ? 40 : 70;
 
           packetConfig = {
             ...DEFAULT_PACKET_CONFIG,
@@ -796,7 +790,7 @@
           packetPool = [];
           floodRings = [];
           floodRingPool = [];
-          processedFloodIds = new Set();
+          floodsProcessed = new Set();
           hoveredNode = null;
 
           // Use current node config counts unless overrides are provided
@@ -1077,14 +1071,14 @@
 
         function checkFloodHit(ring, node) {
           const key = `${ring.floodId}-${node.id}`;
-          if (node.id === ring.sourceId || processedFloodIds.has(key))
+          if (node.id === ring.sourceId || floodsProcessed.has(key))
             return false;
 
           const dist = getDistance({ x: ring.x, y: ring.y }, node);
           const hit = Math.abs(dist - ring.radius) < node.radius;
 
           if (hit) {
-            processedFloodIds.add(key);
+            floodsProcessed.add(key);
             if (node.type === NODE_TYPES.REPEATER) {
               floodRings.push(createFloodRing(node, ring.floodId));
             }
@@ -1111,9 +1105,9 @@
               );
 
               if (!stillActive) {
-                for (const key of processedFloodIds) {
+                for (const key of floodsProcessed) {
                   if (key.startsWith(floodId + "-")) {
-                    processedFloodIds.delete(key);
+                    floodsProcessed.delete(key);
                   }
                 }
               }
@@ -1124,7 +1118,7 @@
         const updateFPS = (timestamp, cpuMs = 0) => {
           if (!IS_DEBUG_MODE) return;
 
-          if (timestamp - lastDrawTime >= MIN_FRAME_DELAY * 0.9) {
+          if (timestamp - lastDrawTime >= FRAME_DELAY_MIN * 0.9) {
             drawTimes.push(timestamp);
             lastDrawTime = timestamp;
 
@@ -1340,7 +1334,7 @@
         const animate = (timestamp) => {
           if (!animationRunning) return;
 
-          if (timestamp - lastFrameTime < MIN_FRAME_DELAY * 0.9) {
+          if (timestamp - lastFrameTime < FRAME_DELAY_MIN * 0.9) {
             animationFrame = requestAnimationFrame(animate);
             return;
           }
