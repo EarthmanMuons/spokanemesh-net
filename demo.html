@@ -366,8 +366,6 @@
         let hoverFrame = null;
         let lastFrameTime = 0;
 
-        let scaleFactor = 1;
-
         let fpsDisplay = null;
         let lastDrawTime = 0;
         let drawTimes = [];
@@ -985,8 +983,8 @@
           const scaledHeight = canvas.height / dpr;
 
           // Calculate the center offset to position the network in the middle
-          const offsetX = (scaledWidth - baseWidth * scaleFactor) / 2;
-          const offsetY = (scaledHeight - baseHeight * scaleFactor) / 2;
+          const offsetX = (scaledWidth - baseWidth) / 2;
+          const offsetY = (scaledHeight - baseHeight) / 2;
 
           drawNodeRanges();
           drawFloodRings();
@@ -1275,8 +1273,8 @@
 
               hoverFrame = requestAnimationFrame(() => {
                 const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / scaleFactor;
-                const y = (e.clientY - rect.top) / scaleFactor;
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
 
                 hoveredNode = nodes.find(
                   (n) => getDistance(n, { x, y }) <= n.size,
@@ -1304,8 +1302,8 @@
         function setupCanvasClickListener() {
           canvas.addEventListener("pointerdown", (e) => {
             const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / scaleFactor;
-            const y = (e.clientY - rect.top) / scaleFactor;
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
             const clickedNode = nodes.find(
               (n) => getDistance(n, { x, y }) <= n.size,
