@@ -958,15 +958,10 @@
             if (packet.delivered) {
               // Draw delivery effect (growing pulse)
               const easedProgress = Math.pow(packet.progress, 0.5);
+              const radius = packet.size + easedProgress * 2 * packet.size;
 
               ctx.beginPath();
-              ctx.arc(
-                packet.x,
-                packet.y,
-                packet.size + easedProgress * packetConfig.deliveryPulseSize,
-                0,
-                Math.PI * 2,
-              );
+              ctx.arc(packet.x, packet.y, radius, 0, Math.PI * 2);
               ctx.fillStyle = hslToHsla(packetConfig.color, 1 - easedProgress);
               ctx.fill();
             }
