@@ -233,10 +233,10 @@
           "--flood-color",
         ].map((v) => ROOT_STYLES.getPropertyValue(v).trim());
 
-        const NODE_TYPES = { CLIENT: "client", REPEATER: "repeater" };
+        const NodeType = { CLIENT: "client", REPEATER: "repeater" };
 
         const DEFAULT_NODE_CONFIGS = {
-          [NODE_TYPES.CLIENT]: {
+          [NodeType.CLIENT]: {
             count: 25,
             mobileCountFactor: 0.6,
             size: 15,
@@ -247,7 +247,7 @@
             color: CLIENT_COLOR,
             borderColor: CLIENT_COLOR_DARK,
           },
-          [NODE_TYPES.REPEATER]: {
+          [NodeType.REPEATER]: {
             count: 10,
             mobileCountFactor: 0.4,
             size: 25,
@@ -276,7 +276,7 @@
           borderColor: PACKET_COLOR_BORDER,
         };
 
-        const ROUTE_VIA = {
+        const RoutingStrategy = {
           DIRECT: "direct", // unicast
           FLOOD: "flood", // broadcast
         };
@@ -288,13 +288,13 @@
             label: "Send Direct",
             title: "Dispatch multiple unicast packets between client nodes",
             action: () => {
-              dispatchPacket({ strategy: ROUTE_VIA.DIRECT });
+              dispatchPacket({ strategy: RoutingStrategy.DIRECT });
               setTimeout(
-                () => dispatchPacket({ strategy: ROUTE_VIA.DIRECT }),
+                () => dispatchPacket({ strategy: RoutingStrategy.DIRECT }),
                 150,
               );
               setTimeout(
-                () => dispatchPacket({ strategy: ROUTE_VIA.DIRECT }),
+                () => dispatchPacket({ strategy: RoutingStrategy.DIRECT }),
                 300,
               );
             },
@@ -304,21 +304,21 @@
             icon: "➜",
             label: "Send Flood",
             title: "Dispatch a broadcast packet to nearby nodes",
-            action: () => dispatchPacket({ strategy: ROUTE_VIA.FLOOD }),
+            action: () => dispatchPacket({ strategy: RoutingStrategy.FLOOD }),
           },
           {
             id: "add-client",
             icon: "＋",
             label: "Add Client",
             title: "End-user node that sends and receives packets",
-            action: () => addNode(NODE_TYPES.CLIENT),
+            action: () => addNode(NodeType.CLIENT),
           },
           {
             id: "add-repeater",
             icon: "⊕",
             label: "Add Repeater",
             title: "Relay node that forwards packets between clients",
-            action: () => addNode(NODE_TYPES.REPEATER),
+            action: () => addNode(NodeType.REPEATER),
           },
           {
             id: "reset",
@@ -384,7 +384,7 @@
           return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        function hslToHSLA(hsl, alpha = 1) {
+        function hslToHsla(hsl, alpha = 1) {
           return hsl.replace("hsl(", "hsla(").replace(")", `, ${alpha})`);
         }
 
@@ -531,7 +531,7 @@
                 path.length <= 2 ||
                 path.slice(1, -1).every((hop) => {
                   const node = nodes.find((n) => n.id === hop.id);
-                  return node && node.type === NODE_TYPES.REPEATER;
+                  return node && node.type === NodeType.REPEATER;
                 })
               ) {
                 return path;
@@ -575,11 +575,11 @@
             return null;
           }
 
-          let msg = packetPool.pop();
-          if (!msg) {
-            msg = {
+          let packet = packetPool.pop();
+          if (!packet) {
+            packet = {
               id: "",
-              strategy: ROUTE_VIA.DIRECT,
+              strategy: RoutingStrategy.DIRECT,
               sourceId: "",
               targetId: "",
               x: 0,
@@ -594,9 +594,9 @@
             };
           }
 
-          Object.assign(msg, {
+          Object.assign(packet, {
             id: generateId(),
-            strategy: ROUTE_VIA.DIRECT,
+            strategy: RoutingStrategy.DIRECT,
             sourceId: source.id,
             targetId: target.id,
             x: source.x,
@@ -609,7 +609,7 @@
             trail: [],
           });
 
-          return msg;
+          return packet;
         }
 
         // Create a flood ring (visualization for broadcasts)
@@ -657,19 +657,19 @@
 
         function pickRandomClient(excludeId = null) {
           const clients = nodes.filter(
-            (n) => n.type === NODE_TYPES.CLIENT && n.id !== excludeId,
+            (n) => n.type === NodeType.CLIENT && n.id !== excludeId,
           );
           return clients[Math.floor(Math.random() * clients.length)];
         }
 
         function clientsInRange(node) {
-          return getNeighbors(node).filter((n) => n.type === NODE_TYPES.CLIENT);
+          return getNeighbors(node).filter((n) => n.type === NodeType.CLIENT);
         }
 
         function clientsOutOfRange(node) {
           return nodes.filter(
             (n) =>
-              n.type === NODE_TYPES.CLIENT &&
+              n.type === NodeType.CLIENT &&
               n.id !== node.id &&
               getDistance(node, n) > node.range,
           );
@@ -679,23 +679,23 @@
           for (let i = 0; i < 3; i++) {
             const target =
               candidates[Math.floor(Math.random() * candidates.length)];
-            const msg = createDirectPacket(source, target);
-            if (!msg) continue;
+            const packet = createDirectPacket(source, target);
+            if (!packet) continue;
 
             // Prefer longer paths
-            if (msg.route.length > 3) return msg;
+            if (packet.route.length > 3) return packet;
 
             // Accept shorter multi-hop (1 repeater) routes 50% of the time,
             // but otherwise keep looking in hopes of finding a longer path
-            if (msg.route.length > 2 && Math.random() < 0.5) return msg;
+            if (packet.route.length > 2 && Math.random() < 0.5) return packet;
           }
           return null;
         }
 
         function tryAnyRoute(source, candidates) {
           for (const target of candidates) {
-            const msg = createDirectPacket(source, target);
-            if (msg) return msg;
+            const packet = createDirectPacket(source, target);
+            if (packet) return packet;
           }
           return null;
         }
@@ -706,22 +706,22 @@
 
           // Prefer multi-hop routes (visually interesting, activates repeaters)
           if (distantClients.length > 0 && Math.random() < 0.8) {
-            const msg = tryMultiHopRoute(source, distantClients);
-            if (msg) return msg;
+            const packet = tryMultiHopRoute(source, distantClients);
+            if (packet) return packet;
           }
 
           // Otherwise, attempt a simple delivery to a nearby client
           if (nearbyClients.length > 0) {
             const target =
               nearbyClients[Math.floor(Math.random() * nearbyClients.length)];
-            const msg = createDirectPacket(source, target);
-            if (msg) return msg;
+            const packet = createDirectPacket(source, target);
+            if (packet) return packet;
           }
 
           // As a last resort, try *any* valid route to a distant client
           if (distantClients.length > 0) {
-            const msg = tryAnyRoute(source, distantClients);
-            if (msg) return msg;
+            const packet = tryAnyRoute(source, distantClients);
+            if (packet) return packet;
           }
 
           return null;
@@ -733,10 +733,10 @@
             : pickRandomClient();
           if (!source) return;
 
-          if (strategy === ROUTE_VIA.DIRECT) {
+          if (strategy === RoutingStrategy.DIRECT) {
             const packet = findInterestingRoute(source);
             if (packet) packets.push(packet);
-          } else if (strategy === ROUTE_VIA.FLOOD) {
+          } else if (strategy === RoutingStrategy.FLOOD) {
             const floodId = generateId();
             const ring = createFloodRing(source, floodId);
             floodsProcessed.add(`${floodId}-${source.id}`);
@@ -792,8 +792,8 @@
           hoveredNode = null;
 
           // Use current node config counts unless overrides are provided
-          const clientCfg = getNodeConfig(NODE_TYPES.CLIENT);
-          const repeaterCfg = getNodeConfig(NODE_TYPES.REPEATER);
+          const clientCfg = getNodeConfig(NodeType.CLIENT);
+          const repeaterCfg = getNodeConfig(NodeType.REPEATER);
 
           const clientCountFinal = clientCount ?? clientCfg.count;
           const repeaterCountFinal = repeaterCount ?? repeaterCfg.count;
@@ -802,8 +802,8 @@
           repeaterCfg.count = repeaterCountFinal;
 
           // Place repeaters first to give them the best grid spacing
-          placeNodes(NODE_TYPES.REPEATER);
-          placeNodes(NODE_TYPES.CLIENT);
+          placeNodes(NodeType.REPEATER);
+          placeNodes(NodeType.CLIENT);
 
           nextDispatchAt = Date.now();
         }
@@ -818,7 +818,7 @@
 
             const isHovered = hoveredNode && node.id === hoveredNode.id;
 
-            ctx.strokeStyle = hslToHSLA(node.color, isHovered ? 0.4 : 0.1);
+            ctx.strokeStyle = hslToHsla(node.color, isHovered ? 0.4 : 0.1);
             ctx.lineWidth = 1;
             ctx.stroke();
           });
@@ -828,7 +828,7 @@
           floodRings.forEach((ring) => {
             ctx.beginPath();
             ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = hslToHSLA(FLOOD_COLOR, ring.opacity);
+            ctx.strokeStyle = hslToHsla(FLOOD_COLOR, ring.opacity);
             ctx.lineWidth = 2;
             ctx.stroke();
           });
@@ -837,12 +837,12 @@
         // Draw packet paths (faint lines showing the route)
         const drawPacketRoutes = () => {
           packets.forEach((packet) => {
-            if (packet.strategy !== ROUTE_VIA.DIRECT) return;
+            if (packet.strategy !== RoutingStrategy.DIRECT) return;
             if (packet.delivered) return;
 
             ctx.beginPath();
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = hslToHSLA(packetConfig.color, 0.5);
+            ctx.strokeStyle = hslToHsla(packetConfig.color, 0.5);
             ctx.lineWidth = 1;
 
             const route = packet.route;
@@ -860,7 +860,7 @@
         // Draw trails behind packets
         const drawPacketTrails = () => {
           packets.forEach((packet) => {
-            if (packet.strategy !== ROUTE_VIA.DIRECT) return;
+            if (packet.strategy !== RoutingStrategy.DIRECT) return;
             if (!packet.trail || packet.trail.length < 2) return;
 
             ctx.beginPath();
@@ -883,8 +883,8 @@
               trail[trail.length - 1].x,
               trail[trail.length - 1].y,
             );
-            gradient.addColorStop(0, hslToHSLA(packetConfig.color, 0));
-            gradient.addColorStop(1, hslToHSLA(packetConfig.color, 0.5));
+            gradient.addColorStop(0, hslToHsla(packetConfig.color, 0));
+            gradient.addColorStop(1, hslToHsla(packetConfig.color, 0.5));
 
             ctx.strokeStyle = gradient;
             ctx.lineWidth = 3;
@@ -942,7 +942,7 @@
 
         const drawPackets = () => {
           packets.forEach((packet) => {
-            if (packet.strategy !== ROUTE_VIA.DIRECT) return;
+            if (packet.strategy !== RoutingStrategy.DIRECT) return;
 
             const color = packetConfig.color;
 
@@ -958,7 +958,7 @@
                 0,
                 Math.PI * 2,
               );
-              ctx.fillStyle = hslToHSLA(packetConfig.color, 1 - easedProgress);
+              ctx.fillStyle = hslToHsla(packetConfig.color, 1 - easedProgress);
               ctx.fill();
             }
 
@@ -1054,7 +1054,7 @@
         function updatePackets(deltaTime) {
           for (let i = packets.length - 1; i >= 0; i--) {
             const packet = packets[i];
-            if (packet.strategy !== ROUTE_VIA.DIRECT) continue;
+            if (packet.strategy !== RoutingStrategy.DIRECT) continue;
 
             if (packet.delivered) {
               if (updateDeliveredPacket(packet, deltaTime)) {
@@ -1077,7 +1077,7 @@
 
           if (hit) {
             floodsProcessed.add(key);
-            if (node.type === NODE_TYPES.REPEATER) {
+            if (node.type === NodeType.REPEATER) {
               floodRings.push(createFloodRing(node, ring.floodId));
             }
           }
@@ -1134,7 +1134,7 @@
           const now = Date.now();
           if (now < nextDispatchAt) return;
 
-          const clients = nodes.filter((n) => n.type === NODE_TYPES.CLIENT);
+          const clients = nodes.filter((n) => n.type === NodeType.CLIENT);
           if (!clients.length) return;
 
           const { delay, delayVariance, batchSize } = packetConfig.autoDispatch;
@@ -1143,7 +1143,9 @@
               const source =
                 clients[Math.floor(Math.random() * clients.length)];
               const strategy =
-                Math.random() < 0.05 ? ROUTE_VIA.FLOOD : ROUTE_VIA.DIRECT;
+                Math.random() < 0.05
+                  ? RoutingStrategy.FLOOD
+                  : RoutingStrategy.DIRECT;
               dispatchPacket({ id: source.id, strategy });
             }, i * 120);
           }
@@ -1188,10 +1190,10 @@
             initialLayoutDone = true;
           } else {
             const clientCount = nodes.filter(
-              (n) => n.type === NODE_TYPES.CLIENT,
+              (n) => n.type === NodeType.CLIENT,
             ).length;
             const repeaterCount = nodes.filter(
-              (n) => n.type === NODE_TYPES.REPEATER,
+              (n) => n.type === NodeType.REPEATER,
             ).length;
 
             // Pause animation and reset cleanly
@@ -1309,10 +1311,10 @@
               (n) => getDistance(n, { x, y }) <= n.size,
             );
 
-            if (clickedNode && clickedNode.type === NODE_TYPES.CLIENT) {
+            if (clickedNode && clickedNode.type === NodeType.CLIENT) {
               dispatchPacket({
                 id: clickedNode.id,
-                strategy: ROUTE_VIA.DIRECT,
+                strategy: RoutingStrategy.DIRECT,
               });
             }
 
