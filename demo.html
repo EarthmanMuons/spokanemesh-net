@@ -328,9 +328,6 @@
         const FPS_TARGET = isMobileDevice() ? 30 : 60;
         const MIN_FRAME_DELAY = 1000 / FPS_TARGET;
 
-        const FLOOD_RING_SPEED = isMobileDevice() ? 120 : 180; // pixels per second
-        const PACKET_FADE_DURATION = 0.6; // seconds
-
         const IS_DEBUG_MODE = window.location.search.includes("debug");
 
         // --- STATE VARIABLES ---
@@ -354,6 +351,7 @@
         let hoveredNode = null;
 
         let packetConfig;
+        let floodRingSpeed;
         let nextDispatchAt = Date.now();
         let dispatchCooldown = 0;
 
@@ -640,7 +638,7 @@
             y: source.y,
             radius: 0,
             maxRadius: source.range,
-            expandSpeed: FLOOD_RING_SPEED,
+            expandSpeed: floodRingSpeed,
             opacity: 0.7,
           });
 
@@ -769,8 +767,6 @@
             };
           });
 
-          minNodeDistance = scaleForMobile(70);
-
           packetConfig = {
             ...DEFAULT_PACKET_CONFIG,
             size: scaleForMobile(DEFAULT_PACKET_CONFIG.size),
@@ -779,6 +775,9 @@
             ),
             speed: scaleForMobile(DEFAULT_PACKET_CONFIG.speed),
           };
+
+          minNodeDistance = scaleForMobile(70);
+          floodRingSpeed = scaleForMobile(180);
         };
 
         function initNetwork(clientCount = null, repeaterCount = null) {
@@ -997,7 +996,8 @@
         // --- SIMULATION UPDATE FUNCTIONS ---
 
         function updatePacketDeliveryEffect(packet, deltaTime) {
-          packet.progress += deltaTime / PACKET_FADE_DURATION;
+          const duration = 0.6; // seconds
+          packet.progress += deltaTime / duration;
           return packet.progress >= 1;
         }
 
