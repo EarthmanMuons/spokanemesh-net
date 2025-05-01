@@ -238,7 +238,6 @@
         const DEFAULT_NODE_CONFIGS = {
           [NodeType.CLIENT]: {
             count: 25,
-            mobileCountFactor: 0.6,
             size: 15,
             radius: 12,
             range: 160,
@@ -249,7 +248,6 @@
           },
           [NodeType.REPEATER]: {
             count: 10,
-            mobileCountFactor: 0.4,
             size: 25,
             radius: 20,
             range: 300,
@@ -352,7 +350,7 @@
         let processedFloods = new Set();
 
         let nodeConfigs;
-        let nodeDistanceMin;
+        let minNodeDistance;
         let hoveredNode = null;
 
         let packetConfig;
@@ -434,7 +432,7 @@
         }
 
         function isTooClose(x, y) {
-          return nodes.some((n) => getDistance({ x, y }, n) < nodeDistanceMin);
+          return nodes.some((n) => getDistance({ x, y }, n) < minNodeDistance);
         }
 
         function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
@@ -753,32 +751,33 @@
           animate(performance.now());
         };
 
+        function scaleForMobile(value) {
+          return isMobileDevice() ? Math.round(value * (2 / 3)) : value;
+        }
+
         // Scale simulation parameters based on device size and pixel density
         const applyScaling = () => {
-          const sizeFactor = isMobileDevice() ? 0.5 : 1;
-
           nodeConfigs = {};
           Object.entries(DEFAULT_NODE_CONFIGS).forEach(([type, def]) => {
-            const countFactor = isMobileDevice() ? def.mobileCountFactor : 1;
-
             nodeConfigs[type] = {
               ...def,
-              count: Math.floor(def.count * countFactor),
-              size: def.size * sizeFactor,
-              radius: def.radius * sizeFactor,
-              range: def.range * sizeFactor,
-              rangeVariance: def.rangeVariance * sizeFactor,
+              count: scaleForMobile(def.count),
+              size: scaleForMobile(def.size),
+              radius: scaleForMobile(def.radius),
+              range: scaleForMobile(def.range),
+              rangeVariance: scaleForMobile(def.rangeVariance),
             };
           });
 
-          nodeDistanceMin = isMobileDevice() ? 40 : 70;
+          minNodeDistance = scaleForMobile(70);
 
           packetConfig = {
             ...DEFAULT_PACKET_CONFIG,
-            size: DEFAULT_PACKET_CONFIG.size * sizeFactor,
-            deliveryPulseSize:
-              DEFAULT_PACKET_CONFIG.deliveryPulseSize * sizeFactor,
-            speed: DEFAULT_PACKET_CONFIG.speed * sizeFactor,
+            size: scaleForMobile(DEFAULT_PACKET_CONFIG.size),
+            deliveryPulseSize: scaleForMobile(
+              DEFAULT_PACKET_CONFIG.deliveryPulseSize,
+            ),
+            speed: scaleForMobile(DEFAULT_PACKET_CONFIG.speed),
           };
         };
 
