@@ -659,7 +659,10 @@
         const addNode = (type) => {
           const node = createNode(type);
           const success = tryPlaceNode(node, false); // no grid for manual adds
-          if (success) nodes.push(node);
+          if (success) {
+            nodes.push(node);
+            computeNeighbors();
+          }
         };
 
         function pickRandomClient(excludeId = null) {
