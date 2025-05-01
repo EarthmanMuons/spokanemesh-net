@@ -238,20 +238,20 @@
         const DEFAULT_NODE_CONFIGS = {
           [NodeType.CLIENT]: {
             count: 25,
-            size: 15,
-            radius: 12,
-            range: 160,
-            rangeVariance: 60,
+            size: 15, // px circumradius of client hexagon
+            hitbox: 12, // px radius for proximity detection
+            range: 160, // px max transmission range
+            rangeVariance: 60, // px +/- offset for range
             useGrid: false,
             color: CLIENT_COLOR,
             borderColor: CLIENT_COLOR_DARK,
           },
           [NodeType.REPEATER]: {
             count: 10,
-            size: 25,
-            radius: 20,
-            range: 300,
-            rangeVariance: 50,
+            size: 25, // px circumradius of repeater hexagon
+            hitbox: 20, // px radius for proximity detection
+            range: 300, // px max transmission range
+            rangeVariance: 50, // px +/- offset for range
             useGrid: true,
             color: REPEATER_COLOR,
             borderColor: REPEATER_COLOR_DARK,
@@ -259,10 +259,10 @@
         };
 
         const DEFAULT_PACKET_CONFIG = {
-          size: 7,
-          speed: 320, // pixels per second
+          size: 7, // px radius of packet circle
+          speed: 320, // px per second
           maxHops: 6,
-          deliveryPulseSize: 15,
+          deliveryPulseSize: 15, // px radius for delivery animation
           color: PACKET_COLOR,
           borderColor: PACKET_COLOR_BORDER,
         };
@@ -273,12 +273,12 @@
         };
 
         const AUTO_DISPATCH_CONFIG = {
-          minInterval: 700,
-          maxInterval: 1700,
+          minInterval: 700, // ms between dispatches
+          maxInterval: 1700, // ms between dispatches
           batchSize: 4,
         };
 
-        const BUTTON_CONFIGS = [
+        const BUTTONS = [
           {
             id: "send-direct",
             icon: "→",
@@ -403,14 +403,14 @@
           const config = getNodeConfig(type);
           if (!config) return null;
 
-          const { radius, range, rangeVariance, size, color } = config;
+          const { hitbox, range, rangeVariance, size, color } = config;
 
           const node = {
             id: generateId(),
             type,
-            x: getRandomInt(radius * 2, simWidth - radius * 2),
-            y: getRandomInt(radius * 2, simHeight - radius * 2),
-            radius,
+            x: getRandomInt(hitbox * 2, simWidth - hitbox * 2),
+            y: getRandomInt(hitbox * 2, simHeight - hitbox * 2),
+            hitbox,
             range: range + getRandomInt(-rangeVariance, rangeVariance),
             size,
             color,
@@ -446,7 +446,7 @@
               row,
               cellW,
               cellH,
-              node.radius,
+              node.hitbox,
             );
             node.x = x;
             node.y = y;
@@ -765,7 +765,7 @@
               ...def,
               count: scaleForMobile(def.count),
               size: scaleForMobile(def.size),
-              radius: scaleForMobile(def.radius),
+              hitbox: scaleForMobile(def.hitbox),
               range: scaleForMobile(def.range),
               rangeVariance: scaleForMobile(def.rangeVariance),
             };
@@ -1077,7 +1077,7 @@
             return false;
 
           const dist = getDistance({ x: ring.x, y: ring.y }, node);
-          const hit = Math.abs(dist - ring.radius) < node.radius;
+          const hit = Math.abs(dist - ring.radius) < node.hitbox;
 
           if (hit) {
             processedFloods.add(key);
@@ -1259,7 +1259,7 @@
         }
 
         function setupButtonListeners() {
-          BUTTON_CONFIGS.forEach(({ id, action }) => {
+          BUTTONS.forEach(({ id, action }) => {
             const button = document.getElementById(id);
             if (button && action) {
               button.addEventListener("pointerdown", (e) => {
@@ -1365,7 +1365,7 @@
           const controlsContainer =
             document.getElementById("controls-container");
 
-          BUTTON_CONFIGS.forEach(({ id, icon, label, title }) => {
+          BUTTONS.forEach(({ id, icon, label, title }) => {
             const [iconSymbol, labelText] = [icon, label];
             const button = document.createElement("button");
             button.id = id;
