@@ -27,7 +27,7 @@
         box-sizing: border-box;
       }
 
-      #fps-monitor {
+      #debug-info {
         position: fixed;
         bottom: 8px;
         right: 8px;
@@ -264,7 +264,6 @@
 
         const DEFAULT_PACKET_CONFIG = {
           size: 7,
-          pulseGrowth: 15,
           speed: 320, // pixels per second
           maxHops: 6,
           autoDispatch: {
@@ -272,6 +271,7 @@
             delayVariance: 500, // milliseconds
             batchSize: 4, // packets per interval
           },
+          deliveryPulseSize: 15,
           color: PACKET_COLOR,
           borderColor: PACKET_COLOR_BORDER,
         };
@@ -330,7 +330,7 @@
         ];
 
         const FPS_TARGET = isMobileDevice() ? 30 : 60;
-        const FRAME_DELAY_MIN = 1000 / FPS_TARGET;
+        const MIN_FRAME_DELAY = 1000 / FPS_TARGET;
 
         const FLOOD_RING_SPEED = isMobileDevice() ? 120 : 180; // pixels per second
         const PACKET_FADE_DURATION = 0.6; // seconds
@@ -342,7 +342,8 @@
         let canvas;
         let ctx;
         let dpr = window.devicePixelRatio || 1;
-        let baseWidth, baseHeight;
+        let simWidth;
+        let simHeight;
         let resizeTimeout;
 
         let nodes = [];
@@ -366,7 +367,7 @@
         let hoverFrame = null;
         let lastFrameTime = 0;
 
-        let fpsDisplay = null;
+        let debugInfoElement = null;
         let lastDrawTime = 0;
         let drawTimes = [];
 
@@ -409,8 +410,8 @@
           const node = {
             id: generateId(),
             type,
-            x: getRandomInt(radius * 2, baseWidth - radius * 2),
-            y: getRandomInt(radius * 2, baseHeight - radius * 2),
+            x: getRandomInt(radius * 2, simWidth - radius * 2),
+            y: getRandomInt(radius * 2, simHeight - radius * 2),
             radius,
             range: range + getRandomInt(-rangeVariance, rangeVariance),
             size,
@@ -428,8 +429,8 @@
             };
           } else {
             return {
-              x: getRandomInt(radius * 2, baseWidth - radius * 2),
-              y: getRandomInt(radius * 2, baseHeight - radius * 2),
+              x: getRandomInt(radius * 2, simWidth - radius * 2),
+              y: getRandomInt(radius * 2, simHeight - radius * 2),
             };
           }
         }
@@ -456,7 +457,7 @@
           return false;
         }
 
-        const placeNodes = (type) => {
+        const layoutNodes = (type) => {
           const config = getNodeConfig(type);
           if (!config) return;
 
@@ -464,8 +465,8 @@
 
           const gridCols = useGrid ? Math.ceil(Math.sqrt(count)) : 0;
           const gridRows = useGrid ? Math.ceil(count / gridCols) : 0;
-          const cellWidth = useGrid ? baseWidth / gridCols : 0;
-          const cellHeight = useGrid ? baseHeight / gridRows : 0;
+          const cellWidth = useGrid ? simWidth / gridCols : 0;
+          const cellHeight = useGrid ? simHeight / gridRows : 0;
 
           let placed = 0;
           for (let i = 0; i < count; i++) {
@@ -497,7 +498,7 @@
           return config;
         }
 
-        function getNeighbors(node) {
+        function getNeighborsOf(node) {
           return nodes.filter(
             (other) =>
               other.id !== node.id && getDistance(node, other) <= node.range,
@@ -545,7 +546,7 @@
             const currentNode = nodes.find((n) => n.id === last.id);
             if (!currentNode) continue;
 
-            const neighbors = getNeighbors(currentNode).filter(
+            const neighbors = getNeighborsOf(currentNode).filter(
               (other) => !visited.has(other.id),
             );
 
@@ -662,17 +663,17 @@
           return clients[Math.floor(Math.random() * clients.length)];
         }
 
-        function clientsInRange(node) {
-          return getNeighbors(node).filter((n) => n.type === NodeType.CLIENT);
-        }
-
-        function clientsOutOfRange(node) {
+        function getClientsFarFrom(node) {
           return nodes.filter(
             (n) =>
               n.type === NodeType.CLIENT &&
               n.id !== node.id &&
               getDistance(node, n) > node.range,
           );
+        }
+
+        function getClientsNearby(node) {
+          return getNeighborsOf(node).filter((n) => n.type === NodeType.CLIENT);
         }
 
         function tryMultiHopRoute(source, candidates) {
@@ -700,27 +701,27 @@
           return null;
         }
 
-        function findInterestingRoute(source) {
-          const nearbyClients = clientsInRange(source);
-          const distantClients = clientsOutOfRange(source);
+        function findAestheticRoute(source) {
+          const farClients = getClientsFarFrom(source);
+          const nearClients = getClientsNearby(source);
 
-          // Prefer multi-hop routes (visually interesting, activates repeaters)
-          if (distantClients.length > 0 && Math.random() < 0.8) {
-            const packet = tryMultiHopRoute(source, distantClients);
+          // Prefer multi-hop routes (80% chance)
+          if (farClients.length > 0 && Math.random() < 0.8) {
+            const packet = tryMultiHopRoute(source, farClients);
             if (packet) return packet;
           }
 
-          // Otherwise, attempt a simple delivery to a nearby client
-          if (nearbyClients.length > 0) {
+          // Try direct delivery to a nearby client
+          if (nearClients.length > 0) {
             const target =
-              nearbyClients[Math.floor(Math.random() * nearbyClients.length)];
+              nearClients[Math.floor(Math.random() * nearClients.length)];
             const packet = createDirectPacket(source, target);
             if (packet) return packet;
           }
 
-          // As a last resort, try *any* valid route to a distant client
-          if (distantClients.length > 0) {
-            const packet = tryAnyRoute(source, distantClients);
+          // Fallback to *any* valid route to a distant client
+          if (farClients.length > 0) {
+            const packet = tryAnyRoute(source, farClients);
             if (packet) return packet;
           }
 
@@ -734,7 +735,7 @@
           if (!source) return;
 
           if (strategy === RoutingStrategy.DIRECT) {
-            const packet = findInterestingRoute(source);
+            const packet = findAestheticRoute(source);
             if (packet) packets.push(packet);
           } else if (strategy === RoutingStrategy.FLOOD) {
             const floodId = generateId();
@@ -776,7 +777,8 @@
           packetConfig = {
             ...DEFAULT_PACKET_CONFIG,
             size: DEFAULT_PACKET_CONFIG.size * sizeFactor,
-            pulseGrowth: DEFAULT_PACKET_CONFIG.pulseGrowth * sizeFactor,
+            deliveryPulseSize:
+              DEFAULT_PACKET_CONFIG.deliveryPulseSize * sizeFactor,
             speed: DEFAULT_PACKET_CONFIG.speed * sizeFactor,
           };
         };
@@ -802,8 +804,8 @@
           repeaterCfg.count = repeaterCountFinal;
 
           // Place repeaters first to give them the best grid spacing
-          placeNodes(NodeType.REPEATER);
-          placeNodes(NodeType.CLIENT);
+          layoutNodes(NodeType.REPEATER);
+          layoutNodes(NodeType.CLIENT);
 
           nextDispatchAt = Date.now();
         }
@@ -954,7 +956,7 @@
               ctx.arc(
                 packet.x,
                 packet.y,
-                packet.size + easedProgress * packetConfig.pulseGrowth,
+                packet.size + easedProgress * packetConfig.deliveryPulseSize,
                 0,
                 Math.PI * 2,
               );
@@ -983,8 +985,8 @@
           const scaledHeight = canvas.height / dpr;
 
           // Calculate the center offset to position the network in the middle
-          const offsetX = (scaledWidth - baseWidth) / 2;
-          const offsetY = (scaledHeight - baseHeight) / 2;
+          const offsetX = (scaledWidth - simWidth) / 2;
+          const offsetY = (scaledHeight - simHeight) / 2;
 
           drawNodeRanges();
           drawFloodRings();
@@ -996,7 +998,7 @@
 
         // --- SIMULATION UPDATE FUNCTIONS ---
 
-        function updateDeliveredPacket(packet, deltaTime) {
+        function updatePacketDeliveryEffect(packet, deltaTime) {
           packet.progress += deltaTime / PACKET_FADE_DURATION;
           return packet.progress >= 1;
         }
@@ -1018,7 +1020,7 @@
           return dist === 0 ? { x: 0, y: 0 } : { x: dx / dist, y: dy / dist };
         }
 
-        function advancePacket(packet, deltaTime) {
+        function movePacketAlongRoute(packet, deltaTime) {
           const next = packet.route[packet.currentHopIndex + 1];
           const now = performance.now();
 
@@ -1057,17 +1059,17 @@
             if (packet.strategy !== RoutingStrategy.DIRECT) continue;
 
             if (packet.delivered) {
-              if (updateDeliveredPacket(packet, deltaTime)) {
+              if (updatePacketDeliveryEffect(packet, deltaTime)) {
                 packets.splice(i, 1);
                 packetPool.push(packet); // recycle
               }
             } else {
-              advancePacket(packet, deltaTime);
+              movePacketAlongRoute(packet, deltaTime);
             }
           }
         }
 
-        function checkFloodHit(ring, node) {
+        function processFloodCollision(ring, node) {
           const key = `${ring.floodId}-${node.id}`;
           if (node.id === ring.sourceId || floodsProcessed.has(key))
             return false;
@@ -1090,7 +1092,7 @@
             ring.radius += ring.expandSpeed * deltaTime;
             ring.opacity = 0.7 * (1 - ring.radius / ring.maxRadius);
 
-            nodes.forEach((node) => checkFloodHit(ring, node));
+            nodes.forEach((node) => processFloodCollision(ring, node));
 
             if (ring.radius >= ring.maxRadius) {
               const expiredRing = floodRings.splice(i, 1)[0];
@@ -1116,7 +1118,7 @@
         const updateFPS = (timestamp, cpuMs = 0) => {
           if (!IS_DEBUG_MODE) return;
 
-          if (timestamp - lastDrawTime >= FRAME_DELAY_MIN * 0.9) {
+          if (timestamp - lastDrawTime >= MIN_FRAME_DELAY * 0.9) {
             drawTimes.push(timestamp);
             lastDrawTime = timestamp;
 
@@ -1126,11 +1128,11 @@
 
             const fps = drawTimes.length;
             const cpu = cpuMs.toFixed(1).padStart(5);
-            fpsDisplay.textContent = `${fps} FPS | ${cpu} ms`;
+            debugInfoElement.textContent = `${fps} FPS | ${cpu} ms`;
           }
         };
 
-        function maybeDispatchPackets() {
+        function dispatchAutoPackets() {
           const now = Date.now();
           if (now < nextDispatchAt) return;
 
@@ -1163,7 +1165,7 @@
             };
 
           idleCallback(() => {
-            if (nodes.length && animationRunning) maybeDispatchPackets();
+            if (nodes.length && animationRunning) dispatchAutoPackets();
             schedulePacketDispatch(); // loop
           });
         }
@@ -1185,8 +1187,8 @@
           ctx.scale(dpr, dpr);
 
           if (!initialLayoutDone) {
-            baseWidth = newWidth;
-            baseHeight = newHeight;
+            simWidth = newWidth;
+            simHeight = newHeight;
             initialLayoutDone = true;
           } else {
             const clientCount = nodes.filter(
@@ -1200,8 +1202,8 @@
             animationRunning = false;
             cancelAnimationFrame(animationFrame);
 
-            baseWidth = newWidth;
-            baseHeight = newHeight;
+            simWidth = newWidth;
+            simHeight = newHeight;
 
             // Reinitialize with current node counts
             applyScaling();
@@ -1267,7 +1269,7 @@
           });
         }
 
-        function setupCanvasHoverListener() {
+        function setupNodeHoverListener() {
           canvas.addEventListener(
             "pointermove",
             (e) => {
@@ -1301,7 +1303,7 @@
           );
         }
 
-        function setupCanvasClickListener() {
+        function setupNodeClickListener() {
           canvas.addEventListener("pointerdown", (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -1326,15 +1328,15 @@
           setupResizeListener();
           setupVisibilityObserver();
           setupButtonListeners();
-          setupCanvasHoverListener();
-          setupCanvasClickListener();
+          setupNodeHoverListener();
+          setupNodeClickListener();
         }
 
         // Animation loop
         const animate = (timestamp) => {
           if (!animationRunning) return;
 
-          if (timestamp - lastFrameTime < FRAME_DELAY_MIN * 0.9) {
+          if (timestamp - lastFrameTime < MIN_FRAME_DELAY * 0.9) {
             animationFrame = requestAnimationFrame(animate);
             return;
           }
@@ -1372,9 +1374,9 @@
           });
 
           if (IS_DEBUG_MODE) {
-            fpsDisplay = document.createElement("div");
-            fpsDisplay.id = "fps-monitor";
-            document.body.appendChild(fpsDisplay);
+            debugInfoElement = document.createElement("div");
+            debugInfoElement.id = "debug-info";
+            document.body.appendChild(debugInfoElement);
           }
 
           resizeCanvas();
