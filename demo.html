@@ -260,8 +260,6 @@
           },
         };
 
-        const PLACEMENT_ATTEMPTS_MAX = 30;
-
         const DEFAULT_PACKET_CONFIG = {
           size: 7,
           speed: 320, // pixels per second
@@ -351,25 +349,25 @@
         let packetPool = [];
         let floodRings = [];
         let floodRingPool = [];
-        let floodsProcessed = new Set();
-        let hoveredNode = null;
+        let processedFloods = new Set();
 
         let nodeConfigs;
         let nodeDistanceMin;
-        let packetConfig;
+        let hoveredNode = null;
 
+        let packetConfig;
         let nextDispatchAt = Date.now();
         let dispatchCooldown = 0;
 
         let animationRunning = true;
         let initialLayoutDone = false;
         let animationFrame = null;
-        let hoverFrame = null;
         let lastFrameTime = 0;
-
-        let debugInfoElement = null;
+        let hoverFrame = null;
         let lastDrawTime = 0;
         let drawTimes = [];
+
+        let debugInfoElement = null;
 
         // --- UTILITY FUNCTIONS ---
 
@@ -440,7 +438,8 @@
         }
 
         function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
-          for (let i = 0; i < PLACEMENT_ATTEMPTS_MAX; i++) {
+          // attempt placement up to 30 times
+          for (let i = 0; i < 30; i++) {
             const { x, y } = generateCoords(
               useGrid,
               col,
@@ -740,7 +739,7 @@
           } else if (strategy === RoutingStrategy.FLOOD) {
             const floodId = generateId();
             const ring = createFloodRing(source, floodId);
-            floodsProcessed.add(`${floodId}-${source.id}`);
+            processedFloods.add(`${floodId}-${source.id}`);
             floodRings.push(ring);
           } else {
             console.warn("Unknown routing strategy:", strategy);
@@ -790,7 +789,7 @@
           packetPool = [];
           floodRings = [];
           floodRingPool = [];
-          floodsProcessed = new Set();
+          processedFloods = new Set();
           hoveredNode = null;
 
           // Use current node config counts unless overrides are provided
@@ -1071,14 +1070,14 @@
 
         function processFloodCollision(ring, node) {
           const key = `${ring.floodId}-${node.id}`;
-          if (node.id === ring.sourceId || floodsProcessed.has(key))
+          if (node.id === ring.sourceId || processedFloods.has(key))
             return false;
 
           const dist = getDistance({ x: ring.x, y: ring.y }, node);
           const hit = Math.abs(dist - ring.radius) < node.radius;
 
           if (hit) {
-            floodsProcessed.add(key);
+            processedFloods.add(key);
             if (node.type === NodeType.REPEATER) {
               floodRings.push(createFloodRing(node, ring.floodId));
             }
@@ -1105,9 +1104,9 @@
               );
 
               if (!stillActive) {
-                for (const key of floodsProcessed) {
+                for (const key of processedFloods) {
                   if (key.startsWith(floodId + "-")) {
-                    floodsProcessed.delete(key);
+                    processedFloods.delete(key);
                   }
                 }
               }
