@@ -1,3 +1,5 @@
+"use strict";
+
 // --- CONSTANTS ---
 
 const ROOT_STYLES = getComputedStyle(document.documentElement);
@@ -127,6 +129,8 @@ let needsStaticRedraw = true;
 let dpr = window.devicePixelRatio || 1;
 let simWidth;
 let simHeight;
+let offsetX = 0;
+let offsetY = 0;
 let resizeTimeout;
 
 let nodes = [];
@@ -153,7 +157,6 @@ let clickedButton = null;
 let animationRunning = true;
 let animationFrame = null;
 let lastFrameTime = 0;
-let hoverFrame = null;
 let lastDrawTime = 0;
 let drawTimes = [];
 
@@ -706,12 +709,6 @@ const drawPacketTrails = (ctx) => {
       ctx.lineTo(trail[i].x, trail[i].y);
     }
 
-    // Fade based on how old the last point is
-    const now = performance.now();
-    const oldest = trail[0].time;
-    const newest = trail[trail.length - 1].time;
-    const alpha = Math.min(1, (now - oldest) / (newest - oldest + 1));
-
     const gradient = ctx.createLinearGradient(
       trail[0].x,
       trail[0].y,
@@ -1128,7 +1125,7 @@ function setupNodeHoverListener(canvas) {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      newHoveredNode = nodes.find(
+      const newHoveredNode = nodes.find(
         (n) => getSquaredDistance(n, { x, y }) <= n.size * n.size,
       );
 
