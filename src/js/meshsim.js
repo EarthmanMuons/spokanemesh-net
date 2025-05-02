@@ -138,11 +138,12 @@ let resizeTimeout;
 
 let nodes = [];
 let packets = [];
-let packetPool = [];
 let floodRings = [];
-let floodRingPool = [];
 let processedFloods = new Set();
+
+let packetPool = createPool(createPacket);
 let trailPool = createPool(createTrail);
+let floodRingPool = [];
 
 let nodeConfigs;
 let minNodeDistance;
@@ -375,6 +376,9 @@ function createPool(factory) {
       if (typeof obj.reset === "function") obj.reset();
       pool.push(obj);
     },
+    clear: () => {
+      pool.length = 0;
+    },
   };
 }
 
@@ -413,10 +417,49 @@ function getOrderedTrail(trail) {
   return points.slice(index).concat(points.slice(0, index));
 }
 
-/**
- * Creates a direct (non-flood) packet between two clients.
- * May be single-hop or multi-hop (via repeaters), depending on network topology.
- */
+function createPacket() {
+  return {
+    id: "",
+    strategy: RoutingStrategy.DIRECT,
+    sourceId: "",
+    targetId: "",
+    x: 0,
+    y: 0,
+    size: 0,
+    route: [],
+    currentHopIndex: 0,
+    delivered: false,
+    progress: 0,
+    trail: null,
+    reset() {
+      this.id = "";
+      this.sourceId = "";
+      this.targetId = "";
+      this.x = 0;
+      this.y = 0;
+      this.size = 0;
+      this.route.length = 0;
+      this.currentHopIndex = 0;
+      this.delivered = false;
+      this.progress = 0;
+      if (this.trail) {
+        releaseTrail(this.trail);
+        this.trail = null;
+      }
+    },
+  };
+}
+
+function acquirePacket() {
+  const packet = packetPool.acquire();
+  packet.id = generateId();
+  return packet;
+}
+
+function releasePacket(packet) {
+  packetPool.release(packet);
+}
+
 function createDirectPacket(source, target) {
   const route = findRoute(source, target);
 
@@ -427,36 +470,15 @@ function createDirectPacket(source, target) {
     return null;
   }
 
-  let packet = packetPool.pop();
-  if (!packet) {
-    packet = {
-      id: "",
-      strategy: RoutingStrategy.DIRECT,
-      sourceId: "",
-      targetId: "",
-      x: 0,
-      y: 0,
-      size: 0,
-      route: [],
-      currentHopIndex: 0,
-      delivered: false,
-      progress: 0,
-      trail: [],
-    };
-  }
+  const packet = acquirePacket();
 
   Object.assign(packet, {
-    id: generateId(),
-    strategy: RoutingStrategy.DIRECT,
     sourceId: source.id,
     targetId: target.id,
     x: source.x,
     y: source.y,
     size: packetConfig.size,
     route,
-    currentHopIndex: 0,
-    delivered: false,
-    progress: 0,
     trail: acquireTrail(),
   });
 
@@ -645,11 +667,13 @@ function initNetwork(clientCount = null, repeaterCount = null) {
   // Reset simulation state
   nodes = [];
   packets = [];
-  packetPool = [];
   floodRings = [];
-  floodRingPool = [];
   processedFloods = new Set();
   hoveredNode = null;
+
+  floodRingPool = [];
+  packetPool.clear();
+  trailPool.clear();
 
   // Use current node config counts unless overrides are provided
   const clientCfg = getNodeConfig(NodeType.CLIENT);
@@ -708,6 +732,7 @@ const drawPacketRoutes = (ctx) => {
     ctx.lineWidth = 1;
 
     const route = packet.route;
+    if (!route || route.length < 2) return;
     ctx.moveTo(route[0].x, route[0].y);
 
     for (let i = 1; i < route.length; i++) {
@@ -881,8 +906,9 @@ function getUnitVector(from, to) {
 
 function movePacketAlongRoute(packet, deltaTime) {
   const next = packet.route[packet.currentHopIndex + 1];
-  const now = performance.now();
+  if (!next) return;
 
+  const now = performance.now();
   addToTrail(packet.trail, { x: packet.x, y: packet.y, time: now });
 
   const distToNext = getDistance(packet, next);
@@ -918,8 +944,7 @@ function updatePackets(deltaTime) {
     if (packet.delivered) {
       if (updatePacketDeliveryEffect(packet, deltaTime)) {
         packets.splice(i, 1);
-        releaseTrail(packet.trail);
-        packetPool.push(packet); // recycle
+        releasePacket(packet);
       }
     } else {
       movePacketAlongRoute(packet, deltaTime);
