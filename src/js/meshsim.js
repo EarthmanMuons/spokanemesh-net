@@ -411,12 +411,6 @@ function addToTrail(trail, point) {
   }
 }
 
-function getOrderedTrail(trail) {
-  const { points, max, index } = trail;
-  if (points.length < max || index === 0) return points;
-  return points.slice(index).concat(points.slice(0, index));
-}
-
 function newPacket() {
   return {
     id: "",
@@ -763,26 +757,39 @@ const drawPacketRoutes = (ctx) => {
   });
 };
 
+function forEachTrailPoint(trail, callback) {
+  const { points, index } = trail;
+  const len = points.length;
+
+  for (let i = 0; i < len; i++) {
+    const realIndex = (index + i) % len;
+    callback(points[realIndex], i);
+  }
+}
+
 // Draw trails behind packets
 const drawPacketTrails = (ctx) => {
   packets.forEach((packet) => {
     if (packet.strategy !== RoutingStrategy.DIRECT) return;
-    if (!packet.trail.points || packet.trail.points.length < 2) return;
+
+    const { trail } = packet;
+    const { points } = trail;
+    if (!points || points.length < 2) return;
+
+    let first, last;
 
     ctx.beginPath();
-    const trail = getOrderedTrail(packet.trail);
-    ctx.moveTo(trail[0].x, trail[0].y);
+    forEachTrailPoint(trail, (point, i) => {
+      if (i === 0) {
+        ctx.moveTo(point.x, point.y);
+        first = point;
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+      last = point;
+    });
 
-    for (let i = 1; i < trail.length; i++) {
-      ctx.lineTo(trail[i].x, trail[i].y);
-    }
-
-    const gradient = ctx.createLinearGradient(
-      trail[0].x,
-      trail[0].y,
-      trail[trail.length - 1].x,
-      trail[trail.length - 1].y,
-    );
+    const gradient = ctx.createLinearGradient(first.x, first.y, last.x, last.y);
     gradient.addColorStop(0, hslToHsla(packetConfig.color, 0));
     gradient.addColorStop(1, hslToHsla(packetConfig.color, 0.5));
 
