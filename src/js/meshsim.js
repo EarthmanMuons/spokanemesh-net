@@ -142,7 +142,7 @@ let packetPool = [];
 let floodRings = [];
 let floodRingPool = [];
 let processedFloods = new Set();
-let trailPool = [];
+let trailPool = createPool(createTrail);
 
 let nodeConfigs;
 let minNodeDistance;
@@ -365,31 +365,52 @@ function findRoute(source, target) {
   return [{ id: source.id, x: source.x, y: source.y }];
 }
 
+function createPool(factory) {
+  const pool = [];
+
+  return {
+    acquire: () => pool.pop() || factory(),
+    release: (obj) => {
+      // Reset object state before reuse
+      if (typeof obj.reset === "function") obj.reset();
+      pool.push(obj);
+    },
+  };
+}
+
+function createTrail() {
+  return {
+    points: [], // circular buffer
+    max: 8,
+    index: 0,
+    reset() {
+      this.points.length = 0;
+      this.index = 0;
+    },
+  };
+}
+
 function acquireTrail() {
-  const trail = trailPool.pop() || [];
-  trail.index = 0;
-  trail.max = 8;
-  return trail;
+  return trailPool.acquire();
 }
 
 function releaseTrail(trail) {
-  trail.length = 0;
-  trail.index = 0;
-  trailPool.push(trail);
+  trailPool.release(trail);
 }
 
 function addToTrail(trail, point) {
-  if (trail.length < trail.max) {
-    trail.push(point);
+  if (trail.points.length < trail.max) {
+    trail.points.push(point);
   } else {
-    trail[trail.index] = point;
+    trail.points[trail.index] = point;
     trail.index = (trail.index + 1) % trail.max;
   }
 }
 
 function getOrderedTrail(trail) {
-  if (trail.length < trail.max || trail.index === 0) return trail;
-  return trail.slice(trail.index).concat(trail.slice(0, trail.index));
+  const { points, max, index } = trail;
+  if (points.length < max || index === 0) return points;
+  return points.slice(index).concat(points.slice(0, index));
 }
 
 /**
@@ -702,7 +723,7 @@ const drawPacketRoutes = (ctx) => {
 const drawPacketTrails = (ctx) => {
   packets.forEach((packet) => {
     if (packet.strategy !== RoutingStrategy.DIRECT) return;
-    if (!packet.trail || packet.trail.length < 2) return;
+    if (!packet.trail.points || packet.trail.points.length < 2) return;
 
     ctx.beginPath();
     const trail = getOrderedTrail(packet.trail);
