@@ -1,4 +1,15 @@
+![Spokane Mesh Network](https://raw.githubusercontent.com/EarthmanMuons/spokanemesh-net/refs/heads/main/src/img/spokanemeshnet-logo-320w.webp)
+
 # Spokane Mesh Network
+
+This is the source for our community website. If you spot a typo, outdated info,
+or have an idea to improve something, feel free to open an [issue][] or submit a
+[pull request][].
+
+<https://www.spokanemesh.net>
+
+[issue]: https://github.com/EarthmanMuons/spokanemesh-net/issues
+[pull request]: https://github.com/EarthmanMuons/spokanemesh-net/pulls
 
 ## License
 
