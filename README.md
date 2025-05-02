@@ -9,7 +9,7 @@ License][LICENSE] (SPDX: 0BSD).
 
 Copyright &copy; 2025 [Aaron Bull Schaefer][EMAIL] and contributors
 
-[LICENSE]: https://github.com/elasticdog/spokanemesh-net/blob/main/LICENSE
+[LICENSE]: https://github.com/EarthmanMuons/spokanemesh-net/blob/main/LICENSE
 [EMAIL]: mailto:aaron@elasticdog.com
 
 ### Content

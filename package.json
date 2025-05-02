@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elasticdog/spokanemesh-net.git"
+    "url": "git+https://github.com/EarthmanMuons/spokanemesh-net.git"
   },
   "author": "",
   "license": "0BSD",
   "bugs": {
-    "url": "https://github.com/elasticdog/spokanemesh-net/issues"
+    "url": "https://github.com/EarthmanMuons/spokanemesh-net/issues"
   },
-  "homepage": "https://github.com/elasticdog/spokanemesh-net#readme",
+  "homepage": "https://github.com/EarthmanMuons/spokanemesh-net#readme",
   "devDependencies": {
     "@eslint/js": "^9.25.1",
     "eslint": "^9.25.1",
