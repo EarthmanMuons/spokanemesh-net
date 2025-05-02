@@ -684,10 +684,10 @@ const applyScaling = () => {
 
 function initNetwork(clientCount = null, repeaterCount = null) {
   // Reset simulation state
-  nodes = [];
-  packets = [];
-  floodRings = [];
-  processedFloods = new Set();
+  nodes.length = 0;
+  packets.length = 0;
+  floodRings.length = 0;
+  processedFloods.clear();
   hoveredNode = null;
 
   floodRingPool.clear();
