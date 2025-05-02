@@ -366,6 +366,7 @@
         let floodRings = [];
         let floodRingPool = [];
         let processedFloods = new Set();
+        let trailPool = [];
 
         let nodeConfigs;
         let minNodeDistance;
@@ -582,6 +583,33 @@
           return [{ id: source.id, x: source.x, y: source.y }];
         }
 
+        function acquireTrail() {
+          const trail = trailPool.pop() || [];
+          trail.index = 0;
+          trail.max = 8;
+          return trail;
+        }
+
+        function releaseTrail(trail) {
+          trail.length = 0;
+          trail.index = 0;
+          trailPool.push(trail);
+        }
+
+        function addToTrail(trail, point) {
+          if (trail.length < trail.max) {
+            trail.push(point);
+          } else {
+            trail[trail.index] = point;
+            trail.index = (trail.index + 1) % trail.max;
+          }
+        }
+
+        function getOrderedTrail(trail) {
+          if (trail.length < trail.max || trail.index === 0) return trail;
+          return trail.slice(trail.index).concat(trail.slice(0, trail.index));
+        }
+
         /**
          * Creates a direct (non-flood) packet between two clients.
          * May be single-hop or multi-hop (via repeaters), depending on network topology.
@@ -611,7 +639,6 @@
               delivered: false,
               progress: 0,
               trail: [],
-              trail_max_length: 10,
             };
           }
 
@@ -627,7 +654,7 @@
             currentHopIndex: 0,
             delivered: false,
             progress: 0,
-            trail: [],
+            trail: acquireTrail(),
           });
 
           return packet;
@@ -899,7 +926,7 @@
             if (!packet.trail || packet.trail.length < 2) return;
 
             ctx.beginPath();
-            const trail = packet.trail;
+            const trail = getOrderedTrail(packet.trail);
             ctx.moveTo(trail[0].x, trail[0].y);
 
             for (let i = 1; i < trail.length; i++) {
@@ -1062,12 +1089,7 @@
           const next = packet.route[packet.currentHopIndex + 1];
           const now = performance.now();
 
-          packet.trail.push({ x: packet.x, y: packet.y, time: now });
-
-          const trailDuration = 150; // milliseconds of trail to keep
-          packet.trail = packet.trail.filter(
-            (p) => now - p.time <= trailDuration,
-          );
+          addToTrail(packet.trail, { x: packet.x, y: packet.y, time: now });
 
           const distToNext = getDistance(packet, next);
           const moveDist = packetConfig.speed * deltaTime;
@@ -1077,7 +1099,10 @@
             packet.x = next.x;
             packet.y = next.y;
             packet.currentHopIndex++;
-            packet.trail = [];
+
+            // Recycle the trail (whether delivered or continuing)
+            releaseTrail(packet.trail);
+            packet.trail = acquireTrail();
 
             if (packet.currentHopIndex === packet.route.length - 1) {
               packet.delivered = true;
@@ -1099,6 +1124,7 @@
             if (packet.delivered) {
               if (updatePacketDeliveryEffect(packet, deltaTime)) {
                 packets.splice(i, 1);
+                releaseTrail(packet.trail);
                 packetPool.push(packet); // recycle
               }
             } else {
