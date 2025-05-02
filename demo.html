@@ -412,8 +412,18 @@
           return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
+        const hslaCache = new Map();
+
         function hslToHsla(hsl, alpha = 1) {
-          return hsl.replace("hsl(", "hsla(").replace(")", `, ${alpha})`);
+          if (typeof hsl !== "string" || !hsl.startsWith("hsl(")) return hsl;
+
+          const key = `${hsl}|${alpha}`;
+          let cached = hslaCache.get(key);
+          if (cached) return cached;
+
+          const hslaStr = `hsla${hsl.slice(3, -1)}, ${alpha})`;
+          hslaCache.set(key, hslaStr);
+          return hslaStr;
         }
 
         function isMobileDevice() {
