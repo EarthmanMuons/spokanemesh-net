@@ -141,9 +141,9 @@ let packets = [];
 let floodRings = [];
 let processedFloods = new Set();
 
-let packetPool = createPool(createPacket);
-let trailPool = createPool(createTrail);
-let floodRingPool = [];
+let packetPool = createPool(newPacket);
+let trailPool = createPool(newTrail);
+let floodRingPool = createPool(newFloodRing);
 
 let nodeConfigs;
 let minNodeDistance;
@@ -382,7 +382,7 @@ function createPool(factory) {
   };
 }
 
-function createTrail() {
+function newTrail() {
   return {
     points: [], // circular buffer
     max: 8,
@@ -417,7 +417,7 @@ function getOrderedTrail(trail) {
   return points.slice(index).concat(points.slice(0, index));
 }
 
-function createPacket() {
+function newPacket() {
   return {
     id: "",
     strategy: RoutingStrategy.DIRECT,
@@ -485,27 +485,47 @@ function createDirectPacket(source, target) {
   return packet;
 }
 
+function newFloodRing() {
+  return {
+    id: "",
+    floodId: "",
+    sourceId: "",
+    x: 0,
+    y: 0,
+    radius: 0,
+    maxRadius: 0,
+    expandSpeed: 0,
+    opacity: 0,
+    reset() {
+      this.id = "";
+      this.floodId = "";
+      this.sourceId = "";
+      this.x = 0;
+      this.y = 0;
+      this.radius = 0;
+      this.maxRadius = 0;
+      this.expandSpeed = 0;
+      this.opacity = 0;
+    },
+  };
+}
+
+function acquireFloodRing() {
+  const ring = floodRingPool.acquire();
+  ring.id = generateId();
+  return ring;
+}
+
+function releaseFloodRing(ring) {
+  floodRingPool.release(ring);
+}
+
 // Create a flood ring (visualization for broadcasts)
 function createFloodRing(source, originalFloodId = null) {
   const floodId = originalFloodId || generateId();
-
-  let ring = floodRingPool.pop();
-  if (!ring) {
-    ring = {
-      id: "",
-      floodId: "",
-      sourceId: "",
-      x: 0,
-      y: 0,
-      radius: 0,
-      maxRadius: 0,
-      expandSpeed: 0,
-      opacity: 0,
-    };
-  }
+  const ring = acquireFloodRing();
 
   Object.assign(ring, {
-    id: generateId(),
     floodId,
     sourceId: source.id,
     x: source.x,
@@ -671,7 +691,7 @@ function initNetwork(clientCount = null, repeaterCount = null) {
   processedFloods = new Set();
   hoveredNode = null;
 
-  floodRingPool = [];
+  floodRingPool.clear();
   packetPool.clear();
   trailPool.clear();
 
@@ -988,7 +1008,7 @@ function updateFloods(deltaTime) {
 
     if (ring.radius >= ring.maxRadius) {
       const expiredRing = floodRings.splice(i, 1)[0];
-      floodRingPool.push(expiredRing); // recycle
+      releaseFloodRing(expiredRing);
 
       // If this was the last ring for its floodId, clean up
       const floodId = expiredRing.floodId;
