@@ -908,13 +908,14 @@
 
         // Draw packet paths (faint lines showing the route)
         const drawPacketRoutes = (ctx) => {
+          const routeColor = hslToHsla(packetConfig.color, 0.5);
           packets.forEach((packet) => {
             if (packet.strategy !== RoutingStrategy.DIRECT) return;
             if (packet.delivered) return;
 
             ctx.beginPath();
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = hslToHsla(packetConfig.color, 0.5);
+            ctx.strokeStyle = routeColor;
             ctx.lineWidth = 1;
 
             const route = packet.route;
