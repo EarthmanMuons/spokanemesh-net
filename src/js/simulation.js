@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: 0BSD
+// Copyright (c) 2025 Aaron Bull Schaefer and contributors
+
 "use strict";
 
 // --- CONSTANTS ---
