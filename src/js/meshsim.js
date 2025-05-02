@@ -427,7 +427,7 @@ function newPacket() {
     y: 0,
     size: 0,
     route: [],
-    currentHopIndex: 0,
+    hopIndex: 0,
     delivered: false,
     progress: 0,
     trail: null,
@@ -439,7 +439,7 @@ function newPacket() {
       this.y = 0;
       this.size = 0;
       this.route.length = 0;
-      this.currentHopIndex = 0;
+      this.hopIndex = 0;
       this.delivered = false;
       this.progress = 0;
       if (this.trail) {
@@ -493,8 +493,8 @@ function newFloodRing() {
     x: 0,
     y: 0,
     radius: 0,
-    maxRadius: 0,
-    expandSpeed: 0,
+    range: 0,
+    speed: 0,
     opacity: 0,
     reset() {
       this.id = "";
@@ -503,8 +503,8 @@ function newFloodRing() {
       this.x = 0;
       this.y = 0;
       this.radius = 0;
-      this.maxRadius = 0;
-      this.expandSpeed = 0;
+      this.range = 0;
+      this.speed = 0;
       this.opacity = 0;
     },
   };
@@ -531,8 +531,8 @@ function createFloodRing(source, originalFloodId = null) {
     x: source.x,
     y: source.y,
     radius: 0,
-    maxRadius: source.range,
-    expandSpeed: floodRingSpeed,
+    range: source.range,
+    speed: floodRingSpeed,
     opacity: 0.7,
   });
 
@@ -638,9 +638,8 @@ function dispatchPacket({ id = null, strategy }) {
     const packet = findAestheticRoute(source);
     if (packet) packets.push(packet);
   } else if (strategy === RoutingStrategy.FLOOD) {
-    const floodId = generateId();
-    const ring = createFloodRing(source, floodId);
-    processedFloods.add(`${floodId}-${source.id}`);
+    const ring = createFloodRing(source);
+    processedFloods.add(`${ring.floodId}-${source.id}`);
     floodRings.push(ring);
   } else {
     console.warn("Unknown routing strategy:", strategy);
@@ -925,7 +924,7 @@ function getUnitVector(from, to) {
 }
 
 function movePacketAlongRoute(packet, deltaTime) {
-  const next = packet.route[packet.currentHopIndex + 1];
+  const next = packet.route[packet.hopIndex + 1];
   if (!next) return;
 
   const now = performance.now();
@@ -938,13 +937,13 @@ function movePacketAlongRoute(packet, deltaTime) {
     // Reached next hop
     packet.x = next.x;
     packet.y = next.y;
-    packet.currentHopIndex++;
+    packet.hopIndex++;
 
     // Recycle the trail (whether delivered or continuing)
     releaseTrail(packet.trail);
     packet.trail = acquireTrail();
 
-    if (packet.currentHopIndex === packet.route.length - 1) {
+    if (packet.hopIndex === packet.route.length - 1) {
       packet.delivered = true;
       packet.progress = 0;
     }
@@ -996,8 +995,8 @@ function processFloodCollision(ring, node) {
 function updateFloods(deltaTime) {
   for (let i = floodRings.length - 1; i >= 0; i--) {
     const ring = floodRings[i];
-    ring.radius += ring.expandSpeed * deltaTime;
-    ring.opacity = 0.7 * (1 - ring.radius / ring.maxRadius);
+    ring.radius += ring.speed * deltaTime;
+    ring.opacity = 0.7 * (1 - ring.radius / ring.range);
 
     const source = nodes.find((n) => n.id === ring.sourceId);
     if (source) {
@@ -1006,7 +1005,7 @@ function updateFloods(deltaTime) {
       }
     }
 
-    if (ring.radius >= ring.maxRadius) {
+    if (ring.radius >= ring.range) {
       const expiredRing = floodRings.splice(i, 1)[0];
       releaseFloodRing(expiredRing);
 
