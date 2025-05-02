@@ -1287,11 +1287,20 @@
             "resize",
             () => {
               clearTimeout(resizeTimeout);
+
               resizeTimeout = setTimeout(() => {
-                if (window.devicePixelRatio !== dpr) {
-                  dpr = window.devicePixelRatio || 1;
+                const newDpr = window.devicePixelRatio || 1;
+                const container = staticCanvas.parentElement;
+                const width = container.offsetWidth;
+                const height = container.offsetHeight;
+
+                const canvasSizeChanged =
+                  simWidth !== width || simHeight !== height || dpr !== newDpr;
+
+                if (canvasSizeChanged) {
+                  dpr = newDpr;
+                  resetNetwork();
                 }
-                resetNetwork();
               }, 250);
             },
             { passive: true },
