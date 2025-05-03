@@ -1073,9 +1073,7 @@ function dispatchAutoPackets() {
 function schedulePacketDispatch() {
   const idleCallback =
     window.requestIdleCallback ||
-    function (cb) {
-      return setTimeout(() => cb({ timeRemaining: () => 0 }), 200);
-    };
+    ((cb) => setTimeout(() => cb({ timeRemaining: () => 0 }), 200));
 
   idleCallback(() => {
     if (nodes.length && animationRunning) dispatchAutoPackets();
