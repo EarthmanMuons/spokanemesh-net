@@ -5,25 +5,6 @@
 
 // --- CONSTANTS ---
 
-const ROOT_STYLES = getComputedStyle(document.documentElement);
-const [
-  CLIENT_COLOR,
-  CLIENT_COLOR_DARK,
-  REPEATER_COLOR,
-  REPEATER_COLOR_DARK,
-  PACKET_COLOR,
-  PACKET_COLOR_BORDER,
-  BROADCAST_COLOR,
-] = [
-  "--client-color",
-  "--client-color-dark",
-  "--repeater-color",
-  "--repeater-color-dark",
-  "--packet-color",
-  "--packet-color-border",
-  "--broadcast-color",
-].map((v) => ROOT_STYLES.getPropertyValue(v).trim());
-
 const NodeType = { CLIENT: "client", REPEATER: "repeater" };
 
 const DEFAULT_NODE_CONFIGS = {
@@ -34,8 +15,8 @@ const DEFAULT_NODE_CONFIGS = {
     range: 160, // px max transmission range
     rangeVariance: 60, // px +/- offset for range
     useGrid: false,
-    color: CLIENT_COLOR,
-    borderColor: CLIENT_COLOR_DARK,
+    color: getCssColor("--client-fill"),
+    borderColor: getCssColor("--client-stroke"),
   },
   [NodeType.REPEATER]: {
     count: 10,
@@ -44,8 +25,8 @@ const DEFAULT_NODE_CONFIGS = {
     range: 280, // px max transmission range
     rangeVariance: 70, // px +/- offset for range
     useGrid: true,
-    color: REPEATER_COLOR,
-    borderColor: REPEATER_COLOR_DARK,
+    color: getCssColor("--repeater-fill"),
+    borderColor: getCssColor("--repeater-stroke"),
   },
 };
 
@@ -53,14 +34,16 @@ const DEFAULT_PACKET_CONFIG = {
   size: 7, // px radius of packet circle
   speed: 320, // px per second
   maxHops: 6,
-  color: PACKET_COLOR,
-  borderColor: PACKET_COLOR_BORDER,
+  color: getCssColor("--packet-fill"),
+  borderColor: getCssColor("--packet-stroke"),
 };
 
 const RoutingStrategy = {
   DIRECT: "direct", // unicast
   FLOOD: "flood", // broadcast
 };
+
+const BROADCAST_COLOR = getCssColor("--broadcast-stroke");
 
 const AUTO_DISPATCH_CONFIG = {
   minInterval: 700, // ms between dispatches
@@ -188,20 +171,6 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const hslaCache = new Map();
-
-function hslToHsla(hsl, alpha = 1) {
-  if (typeof hsl !== "string" || !hsl.startsWith("hsl(")) return hsl;
-
-  const key = `${hsl}|${alpha}`;
-  let cached = hslaCache.get(key);
-  if (cached) return cached;
-
-  const hslaStr = `hsla${hsl.slice(3, -1)}, ${alpha})`;
-  hslaCache.set(key, hslaStr);
-  return hslaStr;
-}
-
 function isMobileDevice() {
   return (
     window.innerWidth <= 768 ||
@@ -211,6 +180,52 @@ function isMobileDevice() {
       ))
   );
 }
+
+function parseHsl(string) {
+  if (!string.startsWith("hsl(") || !string.endsWith(")")) {
+    throw new Error(`Invalid HSL string: ${string}`);
+  }
+
+  const [h, s, l] = string
+    .slice(4, -1) // strip "hsl(" and ")"
+    .split(",")
+    .map((part) => parseFloat(part)); // parse and strip '%' implicitly
+
+  return { h, s, l };
+}
+
+function getCssColor(varName) {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(varName)
+    .trim();
+
+  return parseHsl(raw);
+}
+
+function createColorCache() {
+  const cache = new WeakMap();
+
+  return function hsla(color, alpha) {
+    if (alpha === undefined) {
+      throw new Error("Alpha value must be explicitly provided");
+    }
+
+    let alphaMap = cache.get(color);
+    if (!alphaMap) {
+      alphaMap = new Map();
+      cache.set(color, alphaMap);
+    }
+
+    if (!alphaMap.has(alpha)) {
+      const hslaStr = `hsla(${color.h}, ${color.s}%, ${color.l}%, ${alpha})`;
+      alphaMap.set(alpha, hslaStr);
+    }
+
+    return alphaMap.get(alpha);
+  };
+}
+
+const getHsla = createColorCache();
 
 // --- CORE SIMULATION FUNCTIONS ---
 
@@ -715,7 +730,7 @@ const drawNodeRanges = (ctx) => {
 
     const isHovered = hoveredNode && node.id === hoveredNode.id;
 
-    ctx.strokeStyle = hslToHsla(node.color, isHovered ? 0.5 : 0.1);
+    ctx.strokeStyle = getHsla(node.color, isHovered ? 0.5 : 0.1);
     ctx.lineWidth = 1;
     ctx.stroke();
   });
@@ -725,7 +740,7 @@ const drawBroadcasts = (ctx) => {
   broadcasts.forEach((broadcast) => {
     ctx.beginPath();
     ctx.arc(broadcast.x, broadcast.y, broadcast.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = hslToHsla(BROADCAST_COLOR, broadcast.opacity);
+    ctx.strokeStyle = getHsla(BROADCAST_COLOR, broadcast.opacity);
     ctx.lineWidth = 2;
     ctx.stroke();
   });
@@ -733,7 +748,7 @@ const drawBroadcasts = (ctx) => {
 
 // Draw packet paths (faint lines showing the route)
 const drawPacketRoutes = (ctx) => {
-  const routeColor = hslToHsla(packetConfig.color, 0.5);
+  const routeColor = getHsla(packetConfig.color, 0.5);
   packets.forEach((packet) => {
     if (packet.strategy !== RoutingStrategy.DIRECT) return;
     if (packet.delivered) return;
@@ -789,8 +804,8 @@ const drawPacketTrails = (ctx) => {
     });
 
     const gradient = ctx.createLinearGradient(first.x, first.y, last.x, last.y);
-    gradient.addColorStop(0, hslToHsla(packetConfig.color, 0));
-    gradient.addColorStop(1, hslToHsla(packetConfig.color, 0.5));
+    gradient.addColorStop(0, getHsla(packetConfig.color, 0));
+    gradient.addColorStop(1, getHsla(packetConfig.color, 0.5));
 
     ctx.strokeStyle = gradient;
     ctx.lineWidth = 3;
@@ -817,9 +832,9 @@ const drawHexagon = (
   }
 
   ctx.closePath();
-  ctx.fillStyle = fillColor;
+  ctx.fillStyle = getHsla(fillColor, 1);
   ctx.fill();
-  ctx.strokeStyle = borderColor;
+  ctx.strokeStyle = getHsla(borderColor, 1);
   ctx.lineWidth = lineWidth;
   ctx.stroke();
 };
@@ -846,8 +861,6 @@ const drawPackets = (ctx) => {
   packets.forEach((packet) => {
     if (packet.strategy !== RoutingStrategy.DIRECT) return;
 
-    const color = packetConfig.color;
-
     if (packet.delivered) {
       // Draw delivery effect (growing pulse)
       const easedProgress = Math.pow(packet.progress, 0.5);
@@ -855,16 +868,16 @@ const drawPackets = (ctx) => {
 
       ctx.beginPath();
       ctx.arc(packet.x, packet.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = hslToHsla(packetConfig.color, 1 - easedProgress);
+      ctx.fillStyle = getHsla(packetConfig.color, 1 - easedProgress);
       ctx.fill();
     }
 
     // Draw packet (circle)
     ctx.beginPath();
     ctx.arc(packet.x, packet.y, packet.size, 0, Math.PI * 2);
-    ctx.fillStyle = color;
+    ctx.fillStyle = getHsla(packetConfig.color, 1);
     ctx.fill();
-    ctx.strokeStyle = packetConfig.borderColor;
+    ctx.strokeStyle = getHsla(packetConfig.borderColor, 0.6);
     ctx.lineWidth = 1;
     ctx.stroke();
   });
