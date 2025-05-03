@@ -233,16 +233,16 @@ function createNode(type) {
   const config = getNodeConfig(type);
   if (!config) return null;
 
-  const { hitbox, range, rangeVariance, size, color } = config;
+  const { size, hitbox, range, rangeVariance, color } = config;
 
   const node = {
     id: generateId(),
     type,
-    x: getRandomInt(hitbox * 2, simWidth - hitbox * 2),
-    y: getRandomInt(hitbox * 2, simHeight - hitbox * 2),
+    x: 0,
+    y: 0,
+    size,
     hitbox,
     range: range + getRandomInt(-rangeVariance, rangeVariance),
-    size,
     color,
   };
 
