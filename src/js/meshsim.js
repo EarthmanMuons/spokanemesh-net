@@ -146,14 +146,14 @@ let trailPool = createPool(newTrail);
 let broadcastPool = createPool(newBroadcast);
 
 let nodeConfigs;
+let packetConfig;
+let broadcastSpeed;
 let minNodeDistance;
 
-let packetConfig;
-let autoDispatchState = {
+let dispatcher = {
   nextTime: Date.now(),
   interval: 0,
 };
-let broadcastSpeed;
 
 let hoveredNode = null;
 let clickedButton = null;
@@ -702,7 +702,7 @@ function initNetwork(clientCount = null, repeaterCount = null) {
   layoutNodes(NodeType.CLIENT);
 
   computeNeighbors();
-  autoDispatchState.nextTime = Date.now();
+  dispatcher.nextTime = Date.now();
 }
 
 // --- DRAWING FUNCTIONS ---
@@ -864,8 +864,6 @@ const drawPackets = (ctx) => {
     ctx.arc(packet.x, packet.y, packet.size, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
-
-    // Add a border to make packets more visible
     ctx.strokeStyle = packetConfig.borderColor;
     ctx.lineWidth = 1;
     ctx.stroke();
@@ -1011,21 +1009,19 @@ function updateBroadcasts(deltaTime) {
       }
     }
 
-    if (broadcast.radius >= broadcast.range) {
-      const expiredBroadcast = broadcasts.splice(i, 1)[0];
-      releaseBroadcast(expiredBroadcast);
+    const expired = broadcast.radius >= broadcast.range;
+    if (!expired) continue;
 
-      // If this was the last broadcast for its floodId, clean up
-      const floodId = expiredBroadcast.floodId;
-      const stillActive = broadcasts.some(
-        (b) => b.floodId === floodId && b !== expiredbroadcast,
-      );
+    const { floodId } = broadcast;
+    broadcasts.splice(i, 1);
+    releaseBroadcast(broadcast);
 
-      if (!stillActive) {
-        for (const key of seenBroadcasts) {
-          if (key.startsWith(floodId + "-")) {
-            seenBroadcasts.delete(key);
-          }
+    const stillActive = broadcasts.some((b) => b.floodId === floodId);
+
+    if (!stillActive) {
+      for (const key of seenBroadcasts) {
+        if (key.startsWith(`${floodId}-`)) {
+          seenBroadcasts.delete(key);
         }
       }
     }
@@ -1051,7 +1047,7 @@ const updateFPS = (timestamp, cpuMs = 0) => {
 
 function dispatchAutoPackets() {
   const now = Date.now();
-  if (now < autoDispatchState.nextTime) return;
+  if (now < dispatcher.nextTime) return;
 
   const clients = nodes.filter((n) => n.type === NodeType.CLIENT);
   if (!clients.length) return;
@@ -1066,8 +1062,8 @@ function dispatchAutoPackets() {
     }, i * 120);
   }
 
-  autoDispatchState.interval = getRandomInt(minInterval, maxInterval);
-  autoDispatchState.nextTime = now + autoDispatchState.interval;
+  dispatcher.interval = getRandomInt(minInterval, maxInterval);
+  dispatcher.nextTime = now + dispatcher.interval;
 }
 
 function schedulePacketDispatch() {
