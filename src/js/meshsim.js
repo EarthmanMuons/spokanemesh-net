@@ -30,6 +30,11 @@ const DEFAULT_NODE_CONFIGS = {
   },
 };
 
+const RoutingStrategy = {
+  DIRECT: "direct", // unicast
+  FLOOD: "flood", // broadcast
+};
+
 const DEFAULT_PACKET_CONFIG = {
   size: 7, // px radius of packet circle
   speed: 320, // px per second
@@ -38,12 +43,8 @@ const DEFAULT_PACKET_CONFIG = {
   borderColor: getCssColor("--packet-stroke"),
 };
 
-const RoutingStrategy = {
-  DIRECT: "direct", // unicast
-  FLOOD: "flood", // broadcast
-};
-
 const BROADCAST_COLOR = getCssColor("--broadcast-stroke");
+const BROADCAST_OPACITY_START = 0.7;
 
 const AUTO_DISPATCH_CONFIG = {
   minInterval: 700, // ms between dispatches
@@ -541,7 +542,7 @@ function createBroadcast(source, originFloodId = null) {
     radius: 0,
     range: source.range,
     speed: broadcastSpeed,
-    opacity: 0.7,
+    opacity: BROADCAST_OPACITY_START,
   });
 
   return broadcast;
@@ -1013,7 +1014,8 @@ function updateBroadcasts(deltaTime) {
   for (let i = broadcasts.length - 1; i >= 0; i--) {
     const broadcast = broadcasts[i];
     broadcast.radius += broadcast.speed * deltaTime;
-    broadcast.opacity = 0.7 * (1 - broadcast.radius / broadcast.range);
+    broadcast.opacity =
+      BROADCAST_OPACITY_START * (1 - broadcast.radius / broadcast.range);
 
     const source = nodes.find((n) => n.id === broadcast.sourceId);
     if (source) {
