@@ -13,7 +13,7 @@ const [
   REPEATER_COLOR_DARK,
   PACKET_COLOR,
   PACKET_COLOR_BORDER,
-  FLOOD_COLOR,
+  BROADCAST_COLOR,
 ] = [
   "--client-color",
   "--client-color-dark",
@@ -21,7 +21,7 @@ const [
   "--repeater-color-dark",
   "--packet-color",
   "--packet-color-border",
-  "--flood-color",
+  "--broadcast-color",
 ].map((v) => ROOT_STYLES.getPropertyValue(v).trim());
 
 const NodeType = { CLIENT: "client", REPEATER: "repeater" };
@@ -138,12 +138,12 @@ let resizeTimeout;
 
 let nodes = [];
 let packets = [];
-let floodRings = [];
+let broadcasts = [];
 let processedFloods = new Set();
 
 let packetPool = createPool(newPacket);
 let trailPool = createPool(newTrail);
-let floodRingPool = createPool(newFloodRing);
+let broadcastPool = createPool(newBroadcast);
 
 let nodeConfigs;
 let minNodeDistance;
@@ -153,7 +153,7 @@ let autoDispatchState = {
   nextTime: Date.now(),
   interval: 0,
 };
-let floodRingSpeed;
+let broadcastSpeed;
 
 let hoveredNode = null;
 let clickedButton = null;
@@ -479,7 +479,7 @@ function createDirectPacket(source, target) {
   return packet;
 }
 
-function newFloodRing() {
+function newBroadcast() {
   return {
     id: "",
     floodId: "",
@@ -504,33 +504,32 @@ function newFloodRing() {
   };
 }
 
-function acquireFloodRing() {
-  const ring = floodRingPool.acquire();
-  ring.id = generateId();
-  return ring;
+function acquireBroadcast() {
+  const broadcast = broadcastPool.acquire();
+  broadcast.id = generateId();
+  return broadcast;
 }
 
-function releaseFloodRing(ring) {
-  floodRingPool.release(ring);
+function releaseBroadcast(broadcast) {
+  broadcastPool.release(broadcast);
 }
 
-// Create a flood ring (visualization for broadcasts)
-function createFloodRing(source, originalFloodId = null) {
-  const floodId = originalFloodId || generateId();
-  const ring = acquireFloodRing();
+function createBroadcast(source, originFloodId = null) {
+  const floodId = originFloodId || generateId();
+  const broadcast = acquireBroadcast();
 
-  Object.assign(ring, {
+  Object.assign(broadcast, {
     floodId,
     sourceId: source.id,
     x: source.x,
     y: source.y,
     radius: 0,
     range: source.range,
-    speed: floodRingSpeed,
+    speed: broadcastSpeed,
     opacity: 0.7,
   });
 
-  return ring;
+  return broadcast;
 }
 
 const addNode = (type) => {
@@ -632,9 +631,9 @@ function dispatchPacket({ id = null, strategy }) {
     const packet = findAestheticRoute(source);
     if (packet) packets.push(packet);
   } else if (strategy === RoutingStrategy.FLOOD) {
-    const ring = createFloodRing(source);
-    processedFloods.add(`${ring.floodId}-${source.id}`);
-    floodRings.push(ring);
+    const broadcast = createBroadcast(source);
+    processedFloods.add(`${broadcast.floodId}-${source.id}`);
+    broadcasts.push(broadcast);
   } else {
     console.warn("Unknown routing strategy:", strategy);
   }
@@ -673,18 +672,18 @@ const applyScaling = () => {
   };
 
   minNodeDistance = scaleForMobile(70);
-  floodRingSpeed = scaleForMobile(180);
+  broadcastSpeed = scaleForMobile(180);
 };
 
 function initNetwork(clientCount = null, repeaterCount = null) {
   // Reset simulation state
   nodes.length = 0;
   packets.length = 0;
-  floodRings.length = 0;
+  broadcasts.length = 0;
   processedFloods.clear();
   hoveredNode = null;
 
-  floodRingPool.clear();
+  broadcastPool.clear();
   packetPool.clear();
   trailPool.clear();
 
@@ -722,11 +721,11 @@ const drawNodeRanges = (ctx) => {
   });
 };
 
-const drawFloodRings = (ctx) => {
-  floodRings.forEach((ring) => {
+const drawBroadcasts = (ctx) => {
+  broadcasts.forEach((broadcast) => {
     ctx.beginPath();
-    ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = hslToHsla(FLOOD_COLOR, ring.opacity);
+    ctx.arc(broadcast.x, broadcast.y, broadcast.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = hslToHsla(BROADCAST_COLOR, broadcast.opacity);
     ctx.lineWidth = 2;
     ctx.stroke();
   });
@@ -889,7 +888,7 @@ function renderDynamicLayer() {
   dynamicCtx.save();
   dynamicCtx.translate(offsetX, offsetY);
 
-  drawFloodRings(dynamicCtx);
+  drawBroadcasts(dynamicCtx);
   drawPacketRoutes(dynamicCtx);
   drawPacketTrails(dynamicCtx);
   drawPackets(dynamicCtx);
@@ -978,48 +977,48 @@ function updatePackets(deltaTime) {
   }
 }
 
-function processFloodCollision(ring, node) {
-  const key = `${ring.floodId}-${node.id}`;
-  if (node.id === ring.sourceId || processedFloods.has(key)) {
+function processCollision(broadcast, node) {
+  const key = `${broadcast.floodId}-${node.id}`;
+  if (node.id === broadcast.sourceId || processedFloods.has(key)) {
     return false;
   }
 
-  const distSq = getSquaredDistance(ring, node);
-  const minR = ring.radius - node.hitbox;
-  const maxR = ring.radius + node.hitbox;
+  const distSq = getSquaredDistance(broadcast, node);
+  const minR = broadcast.radius - node.hitbox;
+  const maxR = broadcast.radius + node.hitbox;
   const hit = distSq >= minR * minR && distSq <= maxR * maxR;
 
   if (hit) {
     processedFloods.add(key);
     if (node.type === NodeType.REPEATER) {
-      floodRings.push(createFloodRing(node, ring.floodId));
+      broadcasts.push(createBroadcast(node, broadcast.floodId));
     }
   }
 
   return hit;
 }
 
-function updateFloods(deltaTime) {
-  for (let i = floodRings.length - 1; i >= 0; i--) {
-    const ring = floodRings[i];
-    ring.radius += ring.speed * deltaTime;
-    ring.opacity = 0.7 * (1 - ring.radius / ring.range);
+function updateBroadcasts(deltaTime) {
+  for (let i = broadcasts.length - 1; i >= 0; i--) {
+    const broadcast = broadcasts[i];
+    broadcast.radius += broadcast.speed * deltaTime;
+    broadcast.opacity = 0.7 * (1 - broadcast.radius / broadcast.range);
 
-    const source = nodes.find((n) => n.id === ring.sourceId);
+    const source = nodes.find((n) => n.id === broadcast.sourceId);
     if (source) {
       for (const node of source.neighbors) {
-        processFloodCollision(ring, node);
+        processCollision(broadcast, node);
       }
     }
 
-    if (ring.radius >= ring.range) {
-      const expiredRing = floodRings.splice(i, 1)[0];
-      releaseFloodRing(expiredRing);
+    if (broadcast.radius >= broadcast.range) {
+      const expiredBroadcast = broadcasts.splice(i, 1)[0];
+      releaseBroadcast(expiredBroadcast);
 
-      // If this was the last ring for its floodId, clean up
-      const floodId = expiredRing.floodId;
-      const stillActive = floodRings.some(
-        (r) => r.floodId === floodId && r !== expiredRing,
+      // If this was the last broadcast for its floodId, clean up
+      const floodId = expiredBroadcast.floodId;
+      const stillActive = broadcasts.some(
+        (b) => b.floodId === floodId && b !== expiredbroadcast,
       );
 
       if (!stillActive) {
@@ -1278,7 +1277,7 @@ const animate = (timestamp) => {
   lastFrameTime = timestamp;
 
   updatePackets(deltaTime);
-  updateFloods(deltaTime);
+  updateBroadcasts(deltaTime);
   renderFrame();
 
   const cpuDuration = performance.now() - cpuStart; // END timing
