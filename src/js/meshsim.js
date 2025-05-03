@@ -139,7 +139,7 @@ let resizeTimeout;
 let nodes = [];
 let packets = [];
 let broadcasts = [];
-let processedFloods = new Set();
+let seenBroadcasts = new Set();
 
 let packetPool = createPool(newPacket);
 let trailPool = createPool(newTrail);
@@ -632,7 +632,7 @@ function dispatchPacket({ id = null, strategy }) {
     if (packet) packets.push(packet);
   } else if (strategy === RoutingStrategy.FLOOD) {
     const broadcast = createBroadcast(source);
-    processedFloods.add(`${broadcast.floodId}-${source.id}`);
+    seenBroadcasts.add(`${broadcast.floodId}-${source.id}`);
     broadcasts.push(broadcast);
   } else {
     console.warn("Unknown routing strategy:", strategy);
@@ -680,7 +680,7 @@ function initNetwork(clientCount = null, repeaterCount = null) {
   nodes.length = 0;
   packets.length = 0;
   broadcasts.length = 0;
-  processedFloods.clear();
+  seenBroadcasts.clear();
   hoveredNode = null;
 
   broadcastPool.clear();
@@ -979,7 +979,7 @@ function updatePackets(deltaTime) {
 
 function processCollision(broadcast, node) {
   const key = `${broadcast.floodId}-${node.id}`;
-  if (node.id === broadcast.sourceId || processedFloods.has(key)) {
+  if (node.id === broadcast.sourceId || seenBroadcasts.has(key)) {
     return false;
   }
 
@@ -989,7 +989,7 @@ function processCollision(broadcast, node) {
   const hit = distSq >= minR * minR && distSq <= maxR * maxR;
 
   if (hit) {
-    processedFloods.add(key);
+    seenBroadcasts.add(key);
     if (node.type === NodeType.REPEATER) {
       broadcasts.push(createBroadcast(node, broadcast.floodId));
     }
@@ -1022,9 +1022,9 @@ function updateBroadcasts(deltaTime) {
       );
 
       if (!stillActive) {
-        for (const key of processedFloods) {
+        for (const key of seenBroadcasts) {
           if (key.startsWith(floodId + "-")) {
-            processedFloods.delete(key);
+            seenBroadcasts.delete(key);
           }
         }
       }
