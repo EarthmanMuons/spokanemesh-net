@@ -50,9 +50,9 @@ const PACKET_DEFAULT = {
   },
 };
 
-const AUTO_DISPATCH = {
-  minInterval: 700, // ms between dispatches
-  maxInterval: 1700, // ms between dispatches
+const AUTO_TRANSMIT = {
+  minInterval: 700, // ms between transmissions
+  maxInterval: 1700, // ms between transmissions
   batchSize: 4,
 };
 
@@ -61,15 +61,15 @@ const BUTTONS = [
     id: "send-direct",
     icon: "→",
     label: "Send Direct",
-    title: "Dispatch multiple unicast packets between client nodes",
+    title: "Transmit multiple unicast packets between client nodes",
     action: () => {
-      dispatchPacket({ strategy: RoutingStrategy.DIRECT });
+      transmitPacket({ strategy: RoutingStrategy.DIRECT });
       setTimeout(
-        () => dispatchPacket({ strategy: RoutingStrategy.DIRECT }),
+        () => transmitPacket({ strategy: RoutingStrategy.DIRECT }),
         150,
       );
       setTimeout(
-        () => dispatchPacket({ strategy: RoutingStrategy.DIRECT }),
+        () => transmitPacket({ strategy: RoutingStrategy.DIRECT }),
         300,
       );
     },
@@ -78,8 +78,8 @@ const BUTTONS = [
     id: "send-flood",
     icon: "➜",
     label: "Send Flood",
-    title: "Dispatch a broadcast packet to nearby nodes",
-    action: () => dispatchPacket({ strategy: RoutingStrategy.FLOOD }),
+    title: "Transmit a broadcast packet to nearby nodes",
+    action: () => transmitPacket({ strategy: RoutingStrategy.FLOOD }),
   },
   {
     id: "add-client",
@@ -138,7 +138,7 @@ let unicastState;
 let broadcastState;
 let minNodeDistance;
 
-let dispatcher = {
+let autoTransmitter = {
   nextTime: Date.now(),
   interval: 0,
 };
@@ -643,7 +643,7 @@ function findAestheticRoute(source) {
   return null;
 }
 
-function dispatchPacket({ id = null, strategy }) {
+function transmitPacket({ id = null, strategy }) {
   const source = id ? nodes.find((n) => n.id === id) : pickRandomClient();
   if (!source) return;
 
@@ -726,7 +726,7 @@ function initNetwork(clientCount = null, repeaterCount = null) {
   layoutNodes(NodeType.CLIENT);
 
   computeNeighbors();
-  dispatcher.nextTime = Date.now();
+  autoTransmitter.nextTime = Date.now();
 }
 
 // --- DRAWING FUNCTIONS ---
@@ -1068,35 +1068,35 @@ const updateFPS = (timestamp, cpuMs = 0) => {
   }
 };
 
-function dispatchAutoPackets() {
+function autoTransmitPackets() {
   const now = Date.now();
-  if (now < dispatcher.nextTime) return;
+  if (now < autoTransmitter.nextTime) return;
 
   const clients = nodes.filter((n) => n.type === NodeType.CLIENT);
   if (!clients.length) return;
 
-  const { minInterval, maxInterval, batchSize } = AUTO_DISPATCH;
+  const { minInterval, maxInterval, batchSize } = AUTO_TRANSMIT;
   for (let i = 0; i < batchSize; i++) {
     setTimeout(() => {
       const source = clients[Math.floor(Math.random() * clients.length)];
       const strategy =
         Math.random() < 0.05 ? RoutingStrategy.FLOOD : RoutingStrategy.DIRECT;
-      dispatchPacket({ id: source.id, strategy });
+      transmitPacket({ id: source.id, strategy });
     }, i * 120);
   }
 
-  dispatcher.interval = getRandomInt(minInterval, maxInterval);
-  dispatcher.nextTime = now + dispatcher.interval;
+  autoTransmitter.interval = getRandomInt(minInterval, maxInterval);
+  autoTransmitter.nextTime = now + autoTransmitter.interval;
 }
 
-function schedulePacketDispatch() {
+function schedulePacketTransmission() {
   const idleCallback =
     window.requestIdleCallback ||
     ((cb) => setTimeout(() => cb({ timeRemaining: () => 0 }), 200));
 
   idleCallback(() => {
-    if (nodes.length && animationRunning) dispatchAutoPackets();
-    schedulePacketDispatch(); // loop
+    if (nodes.length && animationRunning) autoTransmitPackets();
+    schedulePacketTransmission(); // loop
   });
 }
 
@@ -1251,14 +1251,14 @@ function setupNodeClickListener(canvas) {
     if (clickedNode) {
       switch (clickedNode.type) {
         case NodeType.CLIENT:
-          dispatchPacket({
+          transmitPacket({
             id: clickedNode.id,
             strategy: RoutingStrategy.DIRECT,
           });
           break;
 
         case NodeType.REPEATER:
-          dispatchPacket({
+          transmitPacket({
             id: clickedNode.id,
             strategy: RoutingStrategy.FLOOD,
           });
@@ -1330,7 +1330,7 @@ const init = () => {
   }
 
   resetNetwork();
-  schedulePacketDispatch();
+  schedulePacketTransmission();
   setupEventListeners();
 };
 
