@@ -136,7 +136,6 @@ let broadcastPool = createPool(newBroadcast);
 let nodeRuntime;
 let packetRuntime;
 let broadcastRuntime;
-let minNodeDistance;
 
 let autoTransmitter = {
   nextTime: Date.now(),
@@ -269,7 +268,8 @@ function generateCoords(useGrid, col, row, cellW, cellH, radius) {
 }
 
 function isTooClose(x, y) {
-  return nodes.some((n) => getDistance({ x, y }, n) < minNodeDistance);
+  const minDistance = nodeRuntime.repeater.size * 3;
+  return nodes.some((n) => getDistance({ x, y }, n) < minDistance);
 }
 
 function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
@@ -697,8 +697,6 @@ const applyScaling = () => {
     ...MESSAGE_DEFAULT.broadcast,
     speed: scaleForMobile(MESSAGE_DEFAULT.broadcast.speed),
   };
-
-  minNodeDistance = scaleForMobile(70);
 };
 
 function initNetwork(clientCount = null, repeaterCount = null) {
