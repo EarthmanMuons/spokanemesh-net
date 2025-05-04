@@ -12,8 +12,8 @@ const NODE_DEFAULT = {
     count: 25,
     size: 15, // px circumradius of client hexagon
     hitbox: 12, // px radius for proximity detection
-    range: 160, // px max transmission range
-    rangeVariance: 60, // px +/- offset for range
+    minRange: 100, // px transmission range
+    maxRange: 220, // px transmission range
     useGrid: false,
     color: getCssColor("--client-fill"),
     borderColor: getCssColor("--client-stroke"),
@@ -22,8 +22,8 @@ const NODE_DEFAULT = {
     count: 10,
     size: 25, // px circumradius of repeater hexagon
     hitbox: 20, // px radius for proximity detection
-    range: 280, // px max transmission range
-    rangeVariance: 70, // px +/- offset for range
+    minRange: 200, // px transmission range
+    maxRange: 350, // px transmission range
     useGrid: true,
     color: getCssColor("--repeater-fill"),
     borderColor: getCssColor("--repeater-stroke"),
@@ -37,9 +37,9 @@ const RoutingStrategy = {
 
 const MESSAGE_DEFAULT = {
   packet: {
+    maxHops: 6,
     size: 7, // px radius of packet circle
     speed: 320, // px per second
-    maxHops: 6,
     color: getCssColor("--packet-fill"),
     borderColor: getCssColor("--packet-stroke"),
   },
@@ -237,7 +237,7 @@ function createNode(type) {
   const config = getNodeConfig(type);
   if (!config) return null;
 
-  const { size, hitbox, range, rangeVariance, color } = config;
+  const { size, hitbox, minRange, maxRange, color } = config;
 
   const node = {
     id: generateId(),
@@ -246,7 +246,7 @@ function createNode(type) {
     y: 0,
     size,
     hitbox,
-    range: range + getRandomInt(-rangeVariance, rangeVariance),
+    range: getRandomInt(minRange, maxRange),
     color,
   };
 
@@ -682,8 +682,8 @@ const applyScaling = () => {
       count: scaleForMobile(def.count),
       size: scaleForMobile(def.size),
       hitbox: scaleForMobile(def.hitbox),
-      range: scaleForMobile(def.range),
-      rangeVariance: scaleForMobile(def.rangeVariance),
+      minRange: scaleForMobile(def.minRange),
+      maxRange: scaleForMobile(def.maxRange),
     };
   });
 
