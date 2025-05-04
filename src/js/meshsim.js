@@ -7,7 +7,7 @@
 
 const NodeType = { CLIENT: "client", REPEATER: "repeater" };
 
-const DEFAULT_NODE_CONFIGS = {
+const NODE_DEFAULT = {
   [NodeType.CLIENT]: {
     count: 25,
     size: 15, // px circumradius of client hexagon
@@ -31,22 +31,26 @@ const DEFAULT_NODE_CONFIGS = {
 };
 
 const RoutingStrategy = {
-  DIRECT: "direct", // unicast
-  FLOOD: "flood", // broadcast
+  DIRECT: "unicast",
+  FLOOD: "broadcast",
 };
 
-const DEFAULT_PACKET_CONFIG = {
-  size: 7, // px radius of packet circle
-  speed: 320, // px per second
-  maxHops: 6,
-  color: getCssColor("--packet-fill"),
-  borderColor: getCssColor("--packet-stroke"),
+const PACKET_DEFAULT = {
+  [RoutingStrategy.DIRECT]: {
+    size: 7, // px radius of packet circle
+    speed: 320, // px per second
+    maxHops: 6,
+    color: getCssColor("--packet-fill"),
+    borderColor: getCssColor("--packet-stroke"),
+  },
+  [RoutingStrategy.FLOOD]: {
+    speed: 180, // px per second
+    color: getCssColor("--broadcast-stroke"),
+    opacity: 0.7,
+  },
 };
 
-const BROADCAST_COLOR = getCssColor("--broadcast-stroke");
-const BROADCAST_OPACITY_START = 0.7;
-
-const AUTO_DISPATCH_CONFIG = {
+const AUTO_DISPATCH = {
   minInterval: 700, // ms between dispatches
   maxInterval: 1700, // ms between dispatches
   batchSize: 4,
@@ -129,9 +133,9 @@ let packetPool = createPool(newPacket);
 let trailPool = createPool(newTrail);
 let broadcastPool = createPool(newBroadcast);
 
-let nodeConfigs;
-let packetConfig;
-let broadcastSpeed;
+let nodeState;
+let unicastState;
+let broadcastState;
 let minNodeDistance;
 
 let dispatcher = {
@@ -320,7 +324,7 @@ const layoutNodes = (type) => {
 };
 
 function getNodeConfig(type) {
-  const config = nodeConfigs[type];
+  const config = nodeState[type];
   if (!config) {
     console.error(`Unknown node type: ${type}`);
     return null;
@@ -475,7 +479,7 @@ function createDirectPacket(source, target) {
 
   if (
     route.length === 1 || // no valid path
-    route.length - 1 > packetConfig.maxHops // too many hops
+    route.length - 1 > unicastState.maxHops // too many hops
   ) {
     return null;
   }
@@ -487,7 +491,7 @@ function createDirectPacket(source, target) {
     targetId: target.id,
     x: source.x,
     y: source.y,
-    size: packetConfig.size,
+    size: unicastState.size,
     route,
     trail: acquireTrail(),
   });
@@ -541,8 +545,8 @@ function createBroadcast(source, originFloodId = null) {
     y: source.y,
     radius: 0,
     range: source.range,
-    speed: broadcastSpeed,
-    opacity: BROADCAST_OPACITY_START,
+    speed: broadcastState.speed,
+    opacity: broadcastState.opacity,
   });
 
   return broadcast;
@@ -669,9 +673,9 @@ function scaleForMobile(value) {
 
 // Scale simulation parameters based on device size and pixel density
 const applyScaling = () => {
-  nodeConfigs = {};
-  Object.entries(DEFAULT_NODE_CONFIGS).forEach(([type, def]) => {
-    nodeConfigs[type] = {
+  nodeState = {};
+  Object.entries(NODE_DEFAULT).forEach(([type, def]) => {
+    nodeState[type] = {
       ...def,
       count: scaleForMobile(def.count),
       size: scaleForMobile(def.size),
@@ -681,14 +685,18 @@ const applyScaling = () => {
     };
   });
 
-  packetConfig = {
-    ...DEFAULT_PACKET_CONFIG,
-    size: scaleForMobile(DEFAULT_PACKET_CONFIG.size),
-    speed: scaleForMobile(DEFAULT_PACKET_CONFIG.speed),
+  unicastState = {
+    ...PACKET_DEFAULT.unicast,
+    size: scaleForMobile(PACKET_DEFAULT.unicast.size),
+    speed: scaleForMobile(PACKET_DEFAULT.unicast.speed),
+  };
+
+  broadcastState = {
+    ...PACKET_DEFAULT.broadcast,
+    speed: scaleForMobile(PACKET_DEFAULT.broadcast.speed),
   };
 
   minNodeDistance = scaleForMobile(70);
-  broadcastSpeed = scaleForMobile(180);
 };
 
 function initNetwork(clientCount = null, repeaterCount = null) {
@@ -741,7 +749,7 @@ const drawBroadcasts = (ctx) => {
   broadcasts.forEach((broadcast) => {
     ctx.beginPath();
     ctx.arc(broadcast.x, broadcast.y, broadcast.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = getHsla(BROADCAST_COLOR, broadcast.opacity);
+    ctx.strokeStyle = getHsla(broadcastState.color, broadcastState.opacity);
     ctx.lineWidth = 2;
     ctx.stroke();
   });
@@ -749,7 +757,7 @@ const drawBroadcasts = (ctx) => {
 
 // Draw packet paths (faint lines showing the route)
 const drawPacketRoutes = (ctx) => {
-  const routeColor = getHsla(packetConfig.color, 0.5);
+  const routeColor = getHsla(unicastState.color, 0.5);
   packets.forEach((packet) => {
     if (packet.strategy !== RoutingStrategy.DIRECT) return;
     if (packet.delivered) return;
@@ -805,8 +813,8 @@ const drawPacketTrails = (ctx) => {
     });
 
     const gradient = ctx.createLinearGradient(first.x, first.y, last.x, last.y);
-    gradient.addColorStop(0, getHsla(packetConfig.color, 0));
-    gradient.addColorStop(1, getHsla(packetConfig.color, 0.5));
+    gradient.addColorStop(0, getHsla(unicastState.color, 0));
+    gradient.addColorStop(1, getHsla(unicastState.color, 0.5));
 
     ctx.strokeStyle = gradient;
     ctx.lineWidth = 3;
@@ -869,16 +877,16 @@ const drawPackets = (ctx) => {
 
       ctx.beginPath();
       ctx.arc(packet.x, packet.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = getHsla(packetConfig.color, 1 - easedProgress);
+      ctx.fillStyle = getHsla(unicastState.color, 1 - easedProgress);
       ctx.fill();
     }
 
     // Draw packet (circle)
     ctx.beginPath();
     ctx.arc(packet.x, packet.y, packet.size, 0, Math.PI * 2);
-    ctx.fillStyle = getHsla(packetConfig.color, 1);
+    ctx.fillStyle = getHsla(unicastState.color, 1);
     ctx.fill();
-    ctx.strokeStyle = getHsla(packetConfig.borderColor, 0.6);
+    ctx.strokeStyle = getHsla(unicastState.borderColor, 0.6);
     ctx.lineWidth = 1;
     ctx.stroke();
   });
@@ -949,7 +957,7 @@ function movePacketAlongRoute(packet, deltaTime) {
   addToTrail(packet.trail, { x: packet.x, y: packet.y, time: now });
 
   const distToNext = getDistance(packet, next);
-  const moveDist = packetConfig.speed * deltaTime;
+  const moveDist = unicastState.speed * deltaTime;
 
   if (moveDist >= distToNext) {
     // Reached next hop
@@ -1015,7 +1023,7 @@ function updateBroadcasts(deltaTime) {
     const broadcast = broadcasts[i];
     broadcast.radius += broadcast.speed * deltaTime;
     broadcast.opacity =
-      BROADCAST_OPACITY_START * (1 - broadcast.radius / broadcast.range);
+      broadcastState.opacity * (1 - broadcast.radius / broadcast.range);
 
     const source = nodes.find((n) => n.id === broadcast.sourceId);
     if (source) {
@@ -1067,7 +1075,7 @@ function dispatchAutoPackets() {
   const clients = nodes.filter((n) => n.type === NodeType.CLIENT);
   if (!clients.length) return;
 
-  const { minInterval, maxInterval, batchSize } = AUTO_DISPATCH_CONFIG;
+  const { minInterval, maxInterval, batchSize } = AUTO_DISPATCH;
   for (let i = 0; i < batchSize; i++) {
     setTimeout(() => {
       const source = clients[Math.floor(Math.random() * clients.length)];
