@@ -234,10 +234,7 @@ const getHsla = createColorCache();
 // --- CORE SIMULATION FUNCTIONS ---
 
 function createNode(type) {
-  const config = getNodeConfig(type);
-  if (!config) return null;
-
-  const { size, hitbox, minRange, maxRange, color } = config;
+  const { size, hitbox, minRange, maxRange, color } = nodeRuntime[type];
 
   const node = {
     id: generateId(),
@@ -292,10 +289,7 @@ function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
 }
 
 const layoutNodes = (type) => {
-  const config = getNodeConfig(type);
-  if (!config) return;
-
-  const { count, useGrid } = config;
+  const { count, useGrid } = nodeRuntime[type];
 
   const gridCols = useGrid ? Math.ceil(Math.sqrt(count)) : 0;
   const gridRows = useGrid ? Math.ceil(count / gridCols) : 0;
@@ -322,15 +316,6 @@ const layoutNodes = (type) => {
     }
   }
 };
-
-function getNodeConfig(type) {
-  const config = nodeRuntime[type];
-  if (!config) {
-    console.error(`Unknown node type: ${type}`);
-    return null;
-  }
-  return config;
-}
 
 /**
  * Performs a breadth-first search to find the shortest valid route
@@ -711,15 +696,8 @@ function initNetwork(clientCount = null, repeaterCount = null) {
   trailPool.clear();
   broadcastPool.clear();
 
-  // Use current node config counts unless overrides are provided
-  const clientCfg = getNodeConfig(NodeType.CLIENT);
-  const repeaterCfg = getNodeConfig(NodeType.REPEATER);
-
-  const clientCountFinal = clientCount ?? clientCfg.count;
-  const repeaterCountFinal = repeaterCount ?? repeaterCfg.count;
-
-  clientCfg.count = clientCountFinal;
-  repeaterCfg.count = repeaterCountFinal;
+  nodeRuntime.client.count = clientCount ?? nodeRuntime.client.count;
+  nodeRuntime.repeater.count = repeaterCount ?? nodeRuntime.repeater.count;
 
   // Place repeaters first to give them the best grid spacing
   layoutNodes(NodeType.REPEATER);
@@ -847,17 +825,14 @@ const drawHexagon = (
 
 const drawNodes = (ctx) => {
   nodes.forEach((node) => {
-    const config = getNodeConfig(node.type);
-    if (!config) return;
-
     const isHovered = hoveredNode && node.id === hoveredNode.id;
 
     drawHexagon(ctx, {
       x: node.x,
       y: node.y,
       size: node.size,
-      fillColor: config.color,
-      borderColor: config.borderColor,
+      fillColor: nodeRuntime[node.type].color,
+      borderColor: nodeRuntime[node.type].borderColor,
       lineWidth: isHovered ? 3 : 1.5,
     });
   });
