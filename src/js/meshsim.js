@@ -270,7 +270,7 @@ function isTooClose(x, y) {
 }
 
 function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
-  // attempt placement up to 30 times
+  // Try up to 30 times to find a suitable placement
   for (let i = 0; i < 30; i++) {
     const { x, y } = generateCoords(
       useGrid,
@@ -577,54 +577,65 @@ function computeNeighbors() {
   }
 }
 
-function tryMultiHopRoute(source, candidates) {
-  for (let i = 0; i < 3; i++) {
-    const target = candidates[Math.floor(Math.random() * candidates.length)];
-    const packet = createDirectMessage(source, target);
-    if (!packet) continue;
+// Randomly shuffles an array in place using the Fisher–Yates algorithm
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
-    // Prefer longer paths
-    if (packet.route.length > 3) return packet;
+function findMultiHopTarget(source) {
+  const candidates = shuffle([...source.farClients]); // shallow copy
+
+  // Try up to 3 random candidates for a preferred multi-hop route
+  for (let i = 0; i < Math.min(3, candidates.length); i++) {
+    const node = candidates[i];
+    const route = findRoute(source, node);
+    if (route.length === 1) continue;
+
+    // Prefer longer multi-hop routes
+    if (route.length > 3) return node;
 
     // Accept shorter multi-hop (1 repeater) routes 50% of the time,
     // but otherwise keep looking in hopes of finding a longer path
-    if (packet.route.length > 2 && Math.random() < 0.5) return packet;
+    if (route.length > 2 && Math.random() < 0.5) return node;
   }
   return null;
 }
 
-function tryAnyRoute(source, candidates) {
-  for (const target of candidates) {
-    const packet = createDirectMessage(source, target);
-    if (packet) return packet;
+function findAnyFarTarget(source) {
+  const candidates = shuffle([...source.farClients]); // shallow copy
+
+  for (const node of candidates) {
+    const route = findRoute(source, node);
+    if (route.length > 1) return node;
   }
   return null;
 }
 
-function findAestheticRoute(source) {
-  const farClients = source.farClients;
-  const nearClients = source.nearClients;
-
-  // Prefer multi-hop routes (80% chance)
-  if (farClients.length > 0 && Math.random() < 0.8) {
-    const packet = tryMultiHopRoute(source, farClients);
-    if (packet) return packet;
+function findAestheticTarget(source) {
+  // Prefer multi-hop routes to far away clients (80% chance)
+  if (source.farClients.length > 0 && Math.random() < 0.8) {
+    const target = findMultiHopTarget(source);
+    if (target) return target;
   }
 
-  // Try direct delivery to a nearby client
-  if (nearClients.length > 0) {
-    const target = nearClients[Math.floor(Math.random() * nearClients.length)];
-    const packet = createDirectMessage(source, target);
-    if (packet) return packet;
+  // Try direct delivery to a random nearby client
+  if (source.nearClients.length > 0) {
+    return source.nearClients[
+      Math.floor(Math.random() * source.nearClients.length)
+    ];
   }
 
-  // Fallback to *any* valid route to a distant client
-  if (farClients.length > 0) {
-    const packet = tryAnyRoute(source, farClients);
-    if (packet) return packet;
+  // Accept *any* distant client we can route to
+  if (source.farClients.length > 0) {
+    const target = findAnyFarTarget(source);
+    if (target) return target;
   }
 
-  return null;
+  return null; // No suitable target found
 }
 
 function transmitMessage({ sourceId = null, strategy }) {
@@ -634,8 +645,11 @@ function transmitMessage({ sourceId = null, strategy }) {
   if (!source) return;
 
   if (strategy === RoutingStrategy.DIRECT) {
-    const packet = findAestheticRoute(source);
-    if (packet) packets.push(packet);
+    const target = findAestheticTarget(source);
+    if (target) {
+      const packet = createDirectMessage(source, target);
+      if (packet) packets.push(packet);
+    }
   } else if (strategy === RoutingStrategy.FLOOD) {
     const broadcast = createFloodMessage(source);
     seenBroadcasts.add(`${broadcast.floodId}-${source.id}`);
