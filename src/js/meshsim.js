@@ -60,7 +60,7 @@ const BUTTONS = [
   {
     id: "send-direct",
     icon: "→",
-    label: "Send Direct Message",
+    label: "Send Direct",
     title: "Transmit a few direct messages between client nodes",
     action: () => {
       transmitMessage({ strategy: RoutingStrategy.DIRECT });
@@ -77,7 +77,7 @@ const BUTTONS = [
   {
     id: "send-flood",
     icon: "➜",
-    label: "Send Flood Message",
+    label: "Send Flood",
     title: "Transmit a flood message to all nearby nodes",
     action: () => transmitMessage({ strategy: RoutingStrategy.FLOOD }),
   },
@@ -419,7 +419,6 @@ function addToTrail(trail, point) {
 function newPacket() {
   return {
     id: "",
-    strategy: RoutingStrategy.DIRECT,
     sourceId: "",
     targetId: "",
     x: 0,
@@ -735,7 +734,6 @@ const drawBroadcasts = (ctx) => {
 const drawPacketRoutes = (ctx) => {
   const routeColor = getHsla(packetRuntime.color, 0.5);
   packets.forEach((packet) => {
-    if (packet.strategy !== RoutingStrategy.DIRECT) return;
     if (packet.delivered) return;
 
     ctx.beginPath();
@@ -768,8 +766,6 @@ function forEachTrailPoint(trail, callback) {
 
 const drawPacketTrails = (ctx) => {
   packets.forEach((packet) => {
-    if (packet.strategy !== RoutingStrategy.DIRECT) return;
-
     const { trail } = packet;
     const { points } = trail;
     if (!points || points.length < 2) return;
@@ -840,8 +836,6 @@ const drawNodes = (ctx) => {
 
 const drawPackets = (ctx) => {
   packets.forEach((packet) => {
-    if (packet.strategy !== RoutingStrategy.DIRECT) return;
-
     if (packet.delivered) {
       // Draw delivery effect (growing pulse)
       const easedProgress = Math.pow(packet.progress, 0.5);
@@ -956,7 +950,6 @@ function movePacketAlongRoute(packet, deltaTime) {
 function updatePackets(deltaTime) {
   for (let i = packets.length - 1; i >= 0; i--) {
     const packet = packets[i];
-    if (packet.strategy !== RoutingStrategy.DIRECT) continue;
 
     if (packet.delivered) {
       if (updatePacketDeliveryEffect(packet, deltaTime)) {
