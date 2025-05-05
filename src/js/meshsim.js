@@ -698,17 +698,29 @@ const applyScaling = () => {
   };
 };
 
+function clearNodes() {
+  nodes.length = 0;
+  hoveredNode = null;
+}
+
+function clearMessages() {
+  for (const packet of packets) {
+    releasePacket(packet);
+  }
+  packets.length = 0;
+
+  for (const broadcast of broadcasts) {
+    releaseBroadcast(broadcast);
+  }
+  broadcasts.length = 0;
+
+  seenBroadcasts.clear();
+}
+
 function initNetwork(clientCount = null, repeaterCount = null) {
   // Reset simulation state
-  nodes.length = 0;
-  packets.length = 0;
-  broadcasts.length = 0;
-  seenBroadcasts.clear();
-  hoveredNode = null;
-
-  packetPool.clear();
-  trailPool.clear();
-  broadcastPool.clear();
+  clearNodes();
+  clearMessages();
 
   nodeRuntime.client.count = clientCount ?? nodeRuntime.client.count;
   nodeRuntime.repeater.count = repeaterCount ?? nodeRuntime.repeater.count;
@@ -1270,7 +1282,10 @@ const animate = (timestamp) => {
 
   const cpuStart = performance.now(); // START timing
 
-  const deltaTime = Math.min((timestamp - lastFrameTime) / 1000, MAX_DELTA);
+  const rawDelta = (timestamp - lastFrameTime) / 1000; // seconds
+  if (rawDelta > 5) clearMessages();
+
+  const deltaTime = Math.min(rawDelta, MAX_DELTA);
   lastFrameTime = timestamp;
 
   updatePackets(deltaTime);
