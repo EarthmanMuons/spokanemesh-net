@@ -106,6 +106,7 @@ const BUTTONS = [
 
 const FPS_TARGET = isMobileDevice() ? 30 : 60;
 const MIN_FRAME_DELAY = 1000 / FPS_TARGET;
+const MAX_DELTA = 0.05; // ~20 FPS max catch-up speed
 
 const IS_DEBUG_MODE = window.location.search.includes("debug");
 
@@ -1269,7 +1270,7 @@ const animate = (timestamp) => {
 
   const cpuStart = performance.now(); // START timing
 
-  const deltaTime = (timestamp - lastFrameTime) / 1000; // seconds
+  const deltaTime = Math.min((timestamp - lastFrameTime) / 1000, MAX_DELTA);
   lastFrameTime = timestamp;
 
   updatePackets(deltaTime);
