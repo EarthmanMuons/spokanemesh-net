@@ -14,7 +14,6 @@ const NODE_DEFAULT = {
     hitbox: 12, // px radius for proximity detection
     minRange: 100, // px transmission range
     maxRange: 220, // px transmission range
-    useGrid: false,
     color: getCssColor("--client-fill"),
     borderColor: getCssColor("--client-stroke"),
   },
@@ -24,7 +23,6 @@ const NODE_DEFAULT = {
     hitbox: 20, // px radius for proximity detection
     minRange: 200, // px transmission range
     maxRange: 350, // px transmission range
-    useGrid: true,
     color: getCssColor("--repeater-fill"),
     borderColor: getCssColor("--repeater-stroke"),
   },
@@ -251,72 +249,35 @@ function createNode(type) {
   return node;
 }
 
-function generateCoords(useGrid, col, row, cellW, cellH, radius) {
-  if (useGrid) {
-    return {
-      x: col * cellW + cellW * (0.25 + Math.random() * 0.5),
-      y: row * cellH + cellH * (0.25 + Math.random() * 0.5),
-    };
-  } else {
-    return {
-      x: getRandomInt(radius * 2, simWidth - radius * 2),
-      y: getRandomInt(radius * 2, simHeight - radius * 2),
-    };
-  }
-}
-
-function isTooClose(x, y) {
-  const minDistance = nodeRuntime.repeater.size * 3;
+function isTooClose(x, y, minDistance) {
   return nodes.some((n) => getDistance({ x, y }, n) < minDistance);
 }
 
-function tryPlaceNode(node, useGrid, col, row, cellW, cellH) {
+function tryPlaceNode(node, minDistance) {
   // Try up to 30 times to find a suitable placement
   for (let i = 0; i < 30; i++) {
-    const { x, y } = generateCoords(
-      useGrid,
-      col,
-      row,
-      cellW,
-      cellH,
-      node.hitbox,
-    );
-    node.x = x;
-    node.y = y;
+    const x = getRandomInt(node.hitbox * 2, simWidth - node.hitbox * 2);
+    const y = getRandomInt(node.hitbox * 2, simHeight - node.hitbox * 2);
 
-    if (!isTooClose(node.x, node.y)) return true;
+    if (!isTooClose(x, y, minDistance)) {
+      node.x = x;
+      node.y = y;
+      return true;
+    }
   }
   return false;
 }
 
-const layoutNodes = (type) => {
-  const { count, useGrid } = nodeRuntime[type];
+function layoutNodes(type) {
+  const { count, size } = nodeRuntime[type];
+  const minDistance = size * (type === NodeType.REPEATER ? 7 : 4);
 
-  const gridCols = useGrid ? Math.ceil(Math.sqrt(count)) : 0;
-  const gridRows = useGrid ? Math.ceil(count / gridCols) : 0;
-  const cellWidth = useGrid ? simWidth / gridCols : 0;
-  const cellHeight = useGrid ? simHeight / gridRows : 0;
-
-  let placed = 0;
   for (let i = 0; i < count; i++) {
     const node = createNode(type);
-    const row = useGrid ? Math.floor(placed / gridCols) : null;
-    const col = useGrid ? placed % gridCols : null;
-
-    const success = tryPlaceNode(
-      node,
-      useGrid,
-      col,
-      row,
-      cellWidth,
-      cellHeight,
-    );
-    if (success) {
-      nodes.push(node);
-      placed++;
-    }
+    const success = tryPlaceNode(node, minDistance);
+    if (success) nodes.push(node);
   }
-};
+}
 
 /**
  * Performs a breadth-first search to find the shortest valid route
@@ -539,7 +500,8 @@ function createFloodMessage(source, originFloodId = null) {
 
 const addNode = (type) => {
   const node = createNode(type);
-  const success = tryPlaceNode(node, false); // no grid for manual adds
+  const minDistance = node.size * 3;
+  const success = tryPlaceNode(node, minDistance);
   if (success) {
     nodes.push(node);
     computeNeighbors();
@@ -725,7 +687,7 @@ function initNetwork(clientCount = null, repeaterCount = null) {
   nodeRuntime.client.count = clientCount ?? nodeRuntime.client.count;
   nodeRuntime.repeater.count = repeaterCount ?? nodeRuntime.repeater.count;
 
-  // Place repeaters first to give them the best grid spacing
+  // Place repeaters first to give them the best spacing
   layoutNodes(NodeType.REPEATER);
   layoutNodes(NodeType.CLIENT);
 
