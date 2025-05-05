@@ -20,7 +20,7 @@
         --button-hover: hsl(205, 49%, 34%); /* #2d5e82 */
         --button-clicked: hsl(85, 40%, 45%); /* #7aa145 */
         --button-text: hsl(0, 0%, 100%); /* #ffffff */
-        --brand-accent: hsl(78, 37%, 39%); /* #748a3f */
+        --brand-accent: hsl(205, 49%, 34%); /* #2d5e82 */
       }
 
       * {
@@ -47,31 +47,25 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.75rem 1.5rem;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         z-index: 1000;
+      }
+
+      .nav-logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 4px;
+        object-fit: contain;
       }
 
       .brand {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.6rem;
         font-size: 1.25rem;
         font-weight: 700;
         color: var(--text-color);
         text-decoration: none;
-      }
-
-      .brand-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: var(--brand-accent);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ffffff;
-        font-size: 22px;
-        line-height: 0;
       }
 
       .brand .highlight {
@@ -337,10 +331,13 @@
   <body>
     <header class="navbar">
       <a href="#" class="brand">
-        <span class="brand-icon">❉</span>Spokane
-        <span class="highlight">Mesh Network</span>
+        <img
+          src="img/spokanemeshnet.webp"
+          alt="Spokane Mesh Network Logo"
+          class="nav-logo"
+        />
+        Spokane<span class="highlight">Mesh Network</span>
       </a>
-      <!-- mobile nav toggle -->
       <input type="checkbox" id="nav-toggle" class="nav-toggle" />
       <label
         for="nav-toggle"
