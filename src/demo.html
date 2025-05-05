@@ -101,6 +101,74 @@
         }
       }
 
+      /* ---------- Hamburger + Mobile Menu ---------- */
+      .nav-toggle {
+        display: none; /* hidden checkbox */
+      }
+
+      .hamburger {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+        cursor: pointer;
+      }
+
+      .hamburger span {
+        width: 24px;
+        height: 2px;
+        background: var(--text-color);
+        transition:
+          transform 0.2s,
+          opacity 0.2s;
+      }
+
+      @media (max-width: 768px) {
+        /* show burger */
+        .hamburger {
+          display: flex;
+        }
+
+        /* hide menu until toggled */
+        nav {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          background: #ffffff;
+          width: 200px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+          transform: translateY(-20px);
+          opacity: 0;
+          pointer-events: none;
+          transition:
+            transform 0.2s ease,
+            opacity 0.2s ease;
+        }
+
+        .nav-links {
+          flex-direction: column;
+          gap: 1rem;
+          padding: 1rem;
+        }
+
+        /* When checkbox checked, reveal menu */
+        #nav-toggle:checked ~ nav {
+          transform: translateY(0);
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        /* animate burger into X */
+        #nav-toggle:checked + .hamburger span:nth-child(1) {
+          transform: translateY(7px) rotate(45deg);
+        }
+        #nav-toggle:checked + .hamburger span:nth-child(2) {
+          opacity: 0;
+        }
+        #nav-toggle:checked + .hamburger span:nth-child(3) {
+          transform: translateY(-7px) rotate(-45deg);
+        }
+      }
+
       /* ---------- HERO SECTION ---------- */
       .hero-section {
         position: relative;
@@ -272,6 +340,16 @@
         <span class="brand-icon">❉</span>Spokane
         <span class="highlight">Mesh Network</span>
       </a>
+      <!-- mobile nav toggle -->
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" />
+      <label
+        for="nav-toggle"
+        class="hamburger"
+        aria-label="Toggle navigation"
+        tabindex="0"
+      >
+        <span></span><span></span><span></span>
+      </label>
       <nav>
         <ul class="nav-links">
           <li><a href="#">Home</a></li>
