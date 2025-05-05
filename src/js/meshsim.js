@@ -579,8 +579,8 @@ function findAnyFarTarget(source) {
 }
 
 function findAestheticTarget(source) {
-  // Prefer multi-hop routes to far away clients (80% chance)
-  if (source.farClients.length > 0 && Math.random() < 0.8) {
+  // Prefer multi-hop routes to far away clients (70% chance)
+  if (source.farClients.length > 0 && Math.random() < 0.7) {
     const target = findMultiHopTarget(source);
     if (target) return target;
   }
