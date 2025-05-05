@@ -7,8 +7,6 @@
     <style>
       :root {
         /* Inland Northwest inspired color palette */
-        --bg-color: hsl(45, 29%, 95%); /* #f5f3ed */
-        --text-color: hsl(0, 0%, 20%); /* #333333 */
         --client-fill: hsl(200, 54%, 54%); /* #4a9fc9 */
         --client-stroke: hsl(200, 54%, 44%);
         --repeater-fill: hsl(205, 49%, 34%); /* #2d5e82 */
@@ -21,6 +19,11 @@
         --button-clicked: hsl(85, 40%, 45%); /* #7aa145 */
         --button-text: hsl(0, 0%, 100%); /* #ffffff */
         --brand-accent: hsl(205, 49%, 34%); /* #2d5e82 */
+        --bg-color: hsl(45, 29%, 95%); /* #f5f3ed */
+        --text-color: hsl(0, 0%, 20%); /* #333333 */
+        --light-color: hsl(0, 0%, 96%); /* #f4f4f4 */
+
+        scroll-padding-top: 40px;
       }
 
       * {
@@ -304,6 +307,47 @@
         pointer-events: none;
       }
 
+      /* ---------- ABOUT SECTION ---------- */
+      .info-section {
+        padding: 3rem 1.5rem;
+        background-color: var(--light-color);
+        color: var(--text-color);
+        text-align: left;
+      }
+
+      .info-container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .info-section h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--packet-fill);
+      }
+
+      .info-section p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        margin-top: 2.5rem;
+      }
+
+      .feature {
+        text-align: center;
+      }
+
+      .feature .icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* ---------- MOBILE SCALING ---------- */
       @media (max-width: 768px) {
         .hero-title {
           font-size: 1.8rem;
@@ -350,7 +394,7 @@
       <nav>
         <ul class="nav-links">
           <li><a href="#">Home</a></li>
-          <li><a href="#">About</a></li>
+          <li><a href="#about">About</a></li>
           <li><a href="#">Events</a></li>
           <li><a href="#">FAQ</a></li>
           <li><a href="#">Contact</a></li>
@@ -365,7 +409,7 @@
           <p class="hero-description">
             <strong>Text, track, & coordinate.</strong> Anywhere from the
             Palouse wheat fields to the Selkirk peaks. Join us in building a
-            resilient, community-run mesh network for the
+            resilient, community-owned mesh network for the
             <em>Inland Northwest</em>.
           </p>
         </div>
@@ -385,6 +429,48 @@
     </section>
 
     <div class="controls" id="controls-container"></div>
+
+    <section id="about" class="info-section">
+      <div class="info-container">
+        <h2>About Our Initiative</h2>
+        <p>
+          <strong>Spokane Mesh Network</strong> is a volunteer-driven community
+          initiative building an off-grid, license-free LoRa communications
+          network across the Inland Northwest. Powered by the
+          <a href="https://meshcore.co.uk/">MeshCore</a> platform, our network
+          connects phones and affordable radios to relay text messages and GPS
+          locations across great distances.
+          <em>No cell service, Wi-Fi, or satellites required.</em>
+        </p>
+
+        <div class="features-grid">
+          <div class="feature">
+            <div class="icon">📱</div>
+            <h3>Off-Grid Communication</h3>
+            <p>
+              Create a decentralized network that works even when traditional
+              infrastructure fails.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="icon">🔒</div>
+            <h3>Privacy Focused</h3>
+            <p>
+              End-to-end encryption keeps your communications secure and
+              private.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="icon">🚨</div>
+            <h3>Emergency Ready</h3>
+            <p>
+              Be prepared for natural disasters with reliable communication
+              tools.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <script src="js/meshsim.js" defer></script>
   </body>
