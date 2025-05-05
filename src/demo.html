@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mesh Network Demonstration</title>
+    <title>
+      Spokane Mesh Network - Connecting Communities, One Node at a Time
+    </title>
     <style>
       :root {
         /* Inland Northwest inspired color palette */
@@ -21,7 +23,8 @@
         --brand-accent: hsl(205, 49%, 34%); /* #2d5e82 */
         --bg-color: hsl(45, 29%, 95%); /* #f5f3ed */
         --text-color: hsl(0, 0%, 20%); /* #333333 */
-        --light-color: hsl(0, 0%, 96%); /* #f4f4f4 */
+        --section-color: hsl(0, 0%, 96%); /* #f4f4f4 */
+        --section-color-alt: hsl(210, 36%, 96%); /* #f0f4f8 */
 
         scroll-padding-top: 40px;
       }
@@ -38,6 +41,12 @@
           Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
         background-color: #ffffff;
         color: var(--text-color);
+      }
+
+      h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--packet-fill);
       }
 
       /* ---------- NAVBAR ---------- */
@@ -310,20 +319,19 @@
       /* ---------- ABOUT SECTION ---------- */
       .info-section {
         padding: 3rem 1.5rem;
-        background-color: var(--light-color);
+        background-color: var(--section-color);
         color: var(--text-color);
         text-align: left;
+      }
+
+      .info-subsection {
+        background-color: #ffffff;
+        padding: 3rem 1.5rem;
       }
 
       .info-container {
         max-width: 800px;
         margin: 0 auto;
-      }
-
-      .info-section h2 {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-        color: var(--packet-fill);
       }
 
       .info-section p {
@@ -345,6 +353,93 @@
       .feature .icon {
         font-size: 2.5rem;
         margin-bottom: 0.5rem;
+      }
+
+      .cta-button {
+        text-align: center;
+        margin-top: 2rem;
+      }
+
+      .cta-button a {
+        display: inline-block;
+        background-color: var(--button-bg);
+        color: var(--button-text);
+        text-decoration: none;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .cta-button a:hover {
+        background-color: var(--button-hover);
+      }
+
+      /* ---------- FAQ SECTION ---------- */
+      .faq-section {
+        background-color: var(--section-color-alt);
+        padding: 3rem 1.5rem;
+      }
+
+      .accordion {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .accordion-item {
+        background-color: white;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .accordion-title {
+        padding: 1.5rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+      }
+
+      .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+
+      .accordion-content-inner {
+        padding: 0 1.5rem 1.5rem;
+        line-height: 1.6;
+      }
+
+      .accordion-content-inner ul {
+        padding-left: 1.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .accordion-content-inner ul li {
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+      }
+
+      .accordion-icon {
+        transition: all 0.2s ease;
+        font-size: 1.5rem;
+        line-height: 1;
+      }
+
+      .accordion-item.active .accordion-icon::before {
+        content: "–";
+      }
+
+      .accordion-item .accordion-icon::before {
+        content: "+";
+      }
+
+      .accordion-item.active .accordion-content {
+        max-height: 500px;
       }
 
       /* ---------- MOBILE SCALING ---------- */
@@ -396,7 +491,7 @@
           <li><a href="#">Home</a></li>
           <li><a href="#about">About</a></li>
           <li><a href="#">Events</a></li>
-          <li><a href="#">FAQ</a></li>
+          <li><a href="#faq">FAQ</a></li>
           <li><a href="#">Contact</a></li>
         </ul>
       </nav>
@@ -435,8 +530,8 @@
         <h2>About Our Initiative</h2>
         <p>
           <strong>Spokane Mesh Network</strong> is a volunteer-driven community
-          initiative building an off-grid, license-free LoRa communications
-          network across the Inland Northwest. Powered by the
+          initiative building a decentralized wireless communications network
+          across the Inland Northwest. Powered by the
           <a href="https://meshcore.co.uk/">MeshCore</a> platform, our network
           connects phones and affordable radios to relay text messages and GPS
           locations across great distances.
@@ -472,6 +567,125 @@
       </div>
     </section>
 
+    <section class="info-subsection">
+      <div class="info-container">
+        <h2>What is MeshCore?</h2>
+        <p>
+          <strong>MeshCore</strong> is the open-source software that powers the
+          backbone of our mesh network. It uses LoRa, a wireless technology
+          designed for long-range, low-power communication over unlicensed radio
+          bands.
+        </p>
+        <div class="cta-button">
+          <a
+            href="https://meshcore.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Visit MeshCore.co.uk</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <section class="faq-section" id="faq">
+      <div class="info-container">
+        <h2>Frequently Asked Questions</h2>
+
+        <div class="accordion">
+          <div class="accordion-item">
+            <div class="accordion-title">
+              What equipment do I need to join the network?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>To join, you'll need:</p>
+                <ul>
+                  <li>
+                    A MeshCore-compatible LoRa radio device, such as a
+                    <a
+                      href="https://www.seeedstudio.com/SenseCAP-Card-Tracker-T1000-E-for-Meshtastic-p-5913.html"
+                      >SenseCap T1000-E</a
+                    >. Check out the
+                    <a href="https://meshcore.co.uk/get.html">hardware guide</a>
+                    for recommended options.
+                  </li>
+                  <li>
+                    A Chrome-based browser to load MeshCore firmware onto the
+                    device using the
+                    <a href="https://flasher.meshcore.co.uk/"
+                      >online web flasher</a
+                    >.
+                  </li>
+                  <li>
+                    A
+                    <a href="https://meshcore.co.uk/apps.html"
+                      >MeshCore client app</a
+                    >
+                    installed on your smartphone or computer.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-title">
+              Do I need a license to operate on the network?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>
+                  No amateur radio license is required. MeshCore devices use
+                  unlicensed ISM bands (typically 915 MHz in North America) that
+                  are legal to use without special permits.
+                </p>
+
+                <p>
+                  However, we do encourage members to learn about responsible
+                  radio use and to configure their devices with appropriate
+                  power settings to avoid interference with other services.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- repeat .accordion-item for more questions -->
+        </div>
+      </div>
+    </section>
+
     <script src="js/meshsim.js" defer></script>
+    <script>
+      document.querySelectorAll(".accordion-title").forEach((title) => {
+        title.addEventListener("click", () => {
+          const item = title.parentElement;
+          const wasOpen = item.classList.contains("active");
+
+          // Collapse all others if you want to enforce single open
+          // document.querySelectorAll(".accordion-item").forEach((i) => i.classList.remove("active"));
+
+          item.classList.toggle("active");
+
+          // Only scroll if it's expanding (was previously closed)
+          if (!wasOpen) {
+            setTimeout(() => {
+              const content = item.querySelector(".accordion-content");
+              const extraOffset = 60; // space below the title
+              const y =
+                window.scrollY +
+                content.getBoundingClientRect().bottom -
+                extraOffset;
+
+              window.scrollTo({
+                top: y,
+                behavior: "smooth",
+              });
+            }, 200); // wait for the transition to animate
+          }
+        });
+      });
+    </script>
   </body>
 </html>
