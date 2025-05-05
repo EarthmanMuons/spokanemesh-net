@@ -120,18 +120,25 @@
       .nav-links {
         list-style: none;
         display: flex;
-        gap: 1.5rem;
+        gap: 1rem;
       }
 
       .nav-links a {
         text-decoration: none;
         color: var(--text-color);
         font-weight: 500;
-        transition: color 0.2s;
+        transition:
+          color 0.1s,
+          background-color 0.4s;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
       }
 
       .nav-links a:hover {
-        color: var(--button-hover);
+        background-color: var(--button-clicked);
+        color: var(--button-text);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
       }
 
       @media (max-width: 768px) {
