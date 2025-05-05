@@ -20,6 +20,7 @@
         --button-hover: hsl(205, 49%, 34%); /* #2d5e82 */
         --button-clicked: hsl(85, 40%, 45%); /* #7aa145 */
         --button-text: hsl(0, 0%, 100%); /* #ffffff */
+        --brand-accent: hsl(78, 37%, 39%); /* #748a3f */
       }
 
       * {
@@ -36,6 +37,71 @@
         color: var(--text-color);
       }
 
+      /* ---------- NAVBAR ---------- */
+      .navbar {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        background-color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1.5rem;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        z-index: 1000;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-color);
+        text-decoration: none;
+      }
+
+      .brand-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--brand-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 22px;
+        line-height: 0;
+      }
+
+      .brand .highlight {
+        color: var(--brand-accent);
+      }
+
+      .nav-links {
+        list-style: none;
+        display: flex;
+        gap: 1.5rem;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: var(--text-color);
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .nav-links a:hover {
+        color: var(--button-hover);
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          gap: 1rem;
+        }
+      }
+
+      /* ---------- HERO SECTION ---------- */
       .hero-section {
         position: relative;
         width: 100%;
@@ -201,13 +267,31 @@
     </style>
   </head>
   <body>
+    <header class="navbar">
+      <a href="#" class="brand">
+        <span class="brand-icon">❉</span>Spokane
+        <span class="highlight">Mesh Network</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#">Home</a></li>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Events</a></li>
+          <li><a href="#">FAQ</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </nav>
+    </header>
+
     <section class="hero-section">
       <div class="hero-overlay">
         <div class="hero-text-background">
-          <h1 class="hero-title">Mesh Network Communication</h1>
+          <h1 class="hero-title">No bars? No problem.</h1>
           <p class="hero-description">
-            Visualizing how packets propagate across a distributed network of
-            client and repeater nodes.
+            <strong>Text, track, & coordinate.</strong> Anywhere from the
+            Palouse wheat fields to the Selkirk peaks. Join us in building a
+            resilient, community-run mesh network for the
+            <em>Inland Northwest</em>.
           </p>
         </div>
       </div>
