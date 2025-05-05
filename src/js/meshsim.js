@@ -660,13 +660,13 @@ function transmitMessage({ sourceId = null, strategy }) {
   }
 }
 
-const resetNetwork = () => {
+function resetNetwork(clientCount = null, repeaterCount = null) {
   cancelAnimationFrame(animationFrame);
   resizeCanvases();
   applyScaling();
-  initNetwork();
+  initNetwork(clientCount, repeaterCount);
   animate(performance.now());
-};
+}
 
 function scaleForMobile(value) {
   return isMobileDevice() ? Math.round(value * (3 / 5)) : value;
@@ -1138,7 +1138,14 @@ function setupResizeListener() {
 
         if (canvasSizeChanged) {
           dpr = newDpr;
-          resetNetwork();
+          let clientCount = 0;
+          let repeaterCount = 0;
+
+          for (const node of nodes) {
+            if (node.type === NodeType.CLIENT) clientCount++;
+            else if (node.type === NodeType.REPEATER) repeaterCount++;
+          }
+          resetNetwork(clientCount, repeaterCount);
         }
       }, 250);
     },
