@@ -3,9 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      Spokane Mesh Network - Connecting Communities, One Node at a Time
-    </title>
+    <title>Spokane Mesh Network - Every Node Counts</title>
     <style>
       :root {
         /* Inland Northwest inspired color palette */
@@ -111,6 +109,11 @@
         font-weight: 700;
         color: var(--text-color);
         text-decoration: none;
+      }
+
+      .brand span {
+        white-space: nowrap;
+        word-spacing: -0.15em;
       }
 
       .brand .highlight {
@@ -375,19 +378,43 @@
       }
 
       .features-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
         gap: 2rem;
         margin-top: 2.5rem;
       }
 
       .feature {
+        flex: 1 1 200px;
+        width: 100%;
+        max-width: 300px;
         text-align: center;
       }
 
       .feature .icon {
         font-size: 2.5rem;
         margin-bottom: 0.5rem;
+      }
+
+      .cta-button {
+        text-align: center;
+        margin: 2rem 0;
+      }
+
+      .cta-button a {
+        display: inline-block;
+        background-color: var(--button-bg);
+        color: var(--button-text);
+        text-decoration: none;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .cta-button a:hover {
+        background-color: var(--button-hover);
       }
 
       .table-responsive {
@@ -422,26 +449,6 @@
         margin: 2rem auto;
         max-width: 100%;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      }
-
-      .cta-button {
-        text-align: center;
-        margin: 2rem 0;
-      }
-
-      .cta-button a {
-        display: inline-block;
-        background-color: var(--button-bg);
-        color: var(--button-text);
-        text-decoration: none;
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        border-radius: 4px;
-        transition: background-color 0.2s;
-      }
-
-      .cta-button a:hover {
-        background-color: var(--button-hover);
       }
 
       /* ---------- FAQ SECTION ---------- */
@@ -567,7 +574,7 @@
           alt="Spokane Mesh Network Logo"
           class="nav-logo"
         />
-        Spokane<span class="highlight">Mesh Network</span>
+        <span>Spokane <span class="highlight">Mesh.Net</span></span>
       </a>
       <input type="checkbox" id="nav-toggle" class="nav-toggle" />
       <label
