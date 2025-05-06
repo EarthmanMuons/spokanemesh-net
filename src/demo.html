@@ -108,6 +108,7 @@
         font-size: 1.25rem;
         font-weight: 700;
         color: var(--text-color);
+        transition: color 0.2s ease;
         text-decoration: none;
       }
 
@@ -116,8 +117,22 @@
         word-spacing: -0.15em;
       }
 
+      .brand:hover {
+        color: var(--button-bg);
+      }
+
       .brand .highlight {
         color: var(--brand-accent);
+        transition: color 0.2s ease;
+      }
+
+      .brand:hover .highlight {
+        color: var(--button-bg);
+      }
+
+      .brand .brand-prefix,
+      .brand .highlight {
+        transition: color 0.2s ease;
       }
 
       .nav-links {
