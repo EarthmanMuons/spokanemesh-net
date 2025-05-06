@@ -923,6 +923,31 @@
 
     <script src="js/meshsim.js" defer></script>
     <script>
+      const navToggle = document.getElementById("nav-toggle");
+      const navLinks = document.querySelectorAll(".nav-links a");
+
+      // Hide menu after clicking a link
+      navLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          if (navToggle.checked) navToggle.checked = false;
+        });
+      });
+
+      // Hide menu when clicking outside
+      document.addEventListener("click", (e) => {
+        const nav = document.querySelector("nav");
+        const hamburger = document.querySelector(".hamburger");
+
+        // Skip if clicking on the label (which toggles the checkbox)
+        if (hamburger.contains(e.target) || e.target.id === "nav-toggle") {
+          return;
+        }
+
+        if (navToggle.checked && !nav.contains(e.target)) {
+          navToggle.checked = false;
+        }
+      });
+
       document.querySelectorAll(".accordion-title").forEach((title) => {
         title.addEventListener("click", () => {
           const item = title.parentElement;
