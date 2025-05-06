@@ -390,8 +390,12 @@
         margin-bottom: 0.5rem;
       }
 
-      .radio-settings-table {
+      .table-responsive {
         width: 100%;
+        overflow-x: auto;
+      }
+
+      .radio-settings-table {
         max-width: 600px;
         margin: 2rem auto;
         border-collapse: collapse;
@@ -422,7 +426,7 @@
 
       .cta-button {
         text-align: center;
-        margin-top: 2rem;
+        margin: 2rem 0;
       }
 
       .cta-button a {
@@ -617,9 +621,9 @@
         <h2>About Our Initiative</h2>
         <p>
           <strong>Spokane Mesh Network</strong> is a volunteer-driven community
-          initiative building a decentralized wireless communications network
-          across the Inland Northwest. Powered by the
-          <a href="https://meshcore.co.uk/">MeshCore</a> platform, our network
+          initiative building a wireless communications network across the
+          Inland Northwest. Powered by the
+          <a href="https://meshcore.co.uk/">MeshCore</a> platform, our system
           connects phones and affordable radios to relay text messages and GPS
           locations across great distances.
           <em>No cell service, Wi-Fi, or satellites required.</em>
@@ -630,8 +634,8 @@
             <div class="icon">🥾</div>
             <h3>Off-Grid Communication</h3>
             <p>
-              Create a decentralized network that works even when traditional
-              infrastructure fails.
+              A decentralized network that works even when traditional
+              infrastructure can fail.
             </p>
           </div>
           <div class="feature">
@@ -663,28 +667,39 @@
           designed for long-range, low-power communication over unlicensed radio
           bands.
         </p>
+        <div class="cta-button">
+          <a
+            href="https://meshcore.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Visit MeshCore.co.uk</a
+          >
+        </div>
+
         <p>
           For reliable regional communication, we use the following radio
           settings:
         </p>
-        <table class="radio-settings-table">
-          <thead>
-            <tr>
-              <th>Frequency (MHz)</th>
-              <th>Bandwidth (kHz)</th>
-              <th>Spreading Factor</th>
-              <th>Coding Rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>910.525</td>
-              <td>250.0</td>
-              <td>11</td>
-              <td>5</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="radio-settings-table">
+            <thead>
+              <tr>
+                <th>Frequency (MHz)</th>
+                <th>Bandwidth (kHz)</th>
+                <th>Spreading Factor</th>
+                <th>Coding Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>910.525</td>
+                <td>250.0</td>
+                <td>11</td>
+                <td>5</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <iframe
           width="560"
@@ -696,15 +711,6 @@
           referrerpolicy="strict-origin-when-cross-origin"
           allowfullscreen
         ></iframe>
-
-        <div class="cta-button">
-          <a
-            href="https://meshcore.co.uk"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Visit MeshCore.co.uk</a
-          >
-        </div>
       </div>
     </section>
 
@@ -723,13 +729,13 @@
                 <p>To join, you'll need:</p>
                 <ul>
                   <li>
-                    A MeshCore-compatible LoRa radio device, such as a
+                    A MeshCore-compatible LoRa radio, such as a
                     <a
                       href="https://www.seeedstudio.com/SenseCAP-Card-Tracker-T1000-E-for-Meshtastic-p-5913.html"
                       >SenseCap T1000-E</a
                     >. Check out the
                     <a href="https://meshcore.co.uk/get.html">hardware guide</a>
-                    for recommended options.
+                    for recommended device options.
                   </li>
                   <li>
                     A Chrome-based browser to load MeshCore firmware onto the
