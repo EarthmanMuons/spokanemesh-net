@@ -467,6 +467,29 @@
         max-height: 500px;
       }
 
+      /* ---------- GET INVOLVED SECTION ---------- */
+      .get-involved-flex {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 2rem;
+      }
+
+      .get-involved-text {
+        flex: 1;
+      }
+
+      .logo-container {
+        flext-shrink: 0;
+        text-align: right;
+        align-self: flex-end;
+      }
+
+      .involved-logo {
+        max-width: 200px;
+        height: auto;
+      }
+
       /* ---------- MOBILE SCALING ---------- */
       @media (max-width: 768px) {
         .hero-title {
@@ -488,6 +511,16 @@
 
         .controls button .icon {
           font-size: 1.2rem;
+        }
+
+        .get-involved-flex {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .logo-container {
+          align-self: center;
+          text-align: center;
         }
       }
     </style>
@@ -524,7 +557,7 @@
     <section class="hero-section">
       <div class="hero-overlay">
         <div class="hero-text-background">
-          <h1 class="hero-title">No bars? No problem.</h1>
+          <h1 class="hero-title">📵 No bars? No problem.</h1>
           <p class="hero-description">
             <strong>Text, track, & coordinate.</strong> Anywhere from the
             Palouse wheat fields to the Selkirk peaks. Join us in building a
@@ -564,7 +597,7 @@
 
         <div class="features-grid">
           <div class="feature">
-            <div class="icon">📱</div>
+            <div class="icon">🥾</div>
             <h3>Off-Grid Communication</h3>
             <p>
               Create a decentralized network that works even when traditional
@@ -685,10 +718,11 @@
                 </p>
 
                 <p>
-                  For added privacy, users can create <em>private channels</em>,
-                  and <em>direct messages</em> between individual devices that
-                  are always private&mdash;only the intended recipient(s) can
-                  read them.
+                  For added privacy, users can create
+                  <em>private channels</em> for groups, and
+                  <em>direct messages</em> between individual devices that are
+                  always private&mdash;only the intended recipient(s) can read
+                  them.
                 </p>
               </div>
             </div>
@@ -764,36 +798,46 @@
     </section>
 
     <section class="info-subsection" id="get-involved">
-      <div class="info-container">
-        <h2>Get Involved!</h2>
-        <p>
-          <strong>Ready to help build the mesh?</strong> Interested in learning
-          more?
-        </p>
-        <ul>
-          <li>
-            Sign up for our
-            <a
-              href="https://groups.google.com/g/spokanemeshnet"
-              target="_blank"
-              rel="noopener"
-              >mailing list</a
-            >
-            to coordinate, discuss ideas, troubleshoot, and share updates with
-            others in the local community.
-          </li>
-          <li>
-            Join the larger community's
-            <a href="https://discord.com/invite/H62Re4DCeD"
-              >MeshCore Discord Server</a
-            >
-            to connect with other users across the globe.
-          </li>
-          <li>
-            Have questions or want to get in touch? Email us directly at:
-            <a href="mailto:info@spokanemesh.net">info@spokanemesh.net</a>
-          </li>
-        </ul>
+      <div class="info-container get-involved-flex">
+        <div class="get-involved-text">
+          <h2>Get Involved!</h2>
+          <p>
+            <strong>Ready to help build the mesh?</strong> Interested in
+            learning more?
+          </p>
+          <ul>
+            <li>
+              Sign up for our
+              <a
+                href="https://groups.google.com/g/spokanemeshnet"
+                target="_blank"
+                rel="noopener"
+                >mailing list</a
+              >
+              to coordinate, discuss ideas, troubleshoot, and share updates with
+              others in the local community.
+            </li>
+            <li>
+              Join the larger community's
+              <a href="https://discord.com/invite/H62Re4DCeD"
+                >MeshCore Discord Server</a
+              >
+              to connect with other users across the globe.
+            </li>
+            <li>
+              Have questions or want to get in touch? Email us directly at:
+              <a href="mailto:info@spokanemesh.net">info@spokanemesh.net</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="logo-container">
+          <img
+            src="img/spokanemeshnet.webp"
+            alt="Spokane Mesh Network Logo"
+            class="involved-logo"
+          />
+        </div>
       </div>
     </section>
 
