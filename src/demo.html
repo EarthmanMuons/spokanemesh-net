@@ -8,7 +8,6 @@
       name="description"
       content="Join the Spokane Mesh Network, a community-powered project bringing off-grid communication to the Inland Northwest using affordable radios and open-source tools."
     />
-
     <meta
       property="og:title"
       content="Spokane Mesh Network - Every Node Counts"
@@ -24,7 +23,6 @@
     <meta property="og:url" content="https://www.spokanemesh.net/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Spokane Mesh Network" />
-
     <style>
       :root {
         /* Inland Northwest inspired color palette */
@@ -180,17 +178,20 @@
       }
 
       /* ---------- Hamburger + Mobile Menu ---------- */
-      .nav-toggle {
-        display: none; /* hidden checkbox */
-      }
 
       @media (max-width: 768px) {
         /* show burger */
         .hamburger {
+          all: unset;
           display: flex;
           flex-direction: column;
           gap: 5px;
           cursor: pointer;
+        }
+
+        .hamburger:focus {
+          outline: auto;
+          outline-offset: 2px;
         }
 
         .hamburger span {
@@ -224,21 +225,19 @@
           padding: 1rem;
         }
 
-        /* When checkbox checked, reveal menu */
-        #nav-toggle:checked ~ nav {
+        nav.open {
           transform: translateY(0);
           opacity: 1;
           pointer-events: auto;
         }
 
-        /* animate burger into X */
-        #nav-toggle:checked + .hamburger span:nth-child(1) {
+        .hamburger.open span:nth-child(1) {
           transform: translateY(7px) rotate(45deg);
         }
-        #nav-toggle:checked + .hamburger span:nth-child(2) {
+        .hamburger.open span:nth-child(2) {
           opacity: 0;
         }
-        #nav-toggle:checked + .hamburger span:nth-child(3) {
+        .hamburger.open span:nth-child(3) {
           transform: translateY(-7px) rotate(-45deg);
         }
       }
@@ -654,16 +653,16 @@
         />
         <span>Spokane<span class="highlight">Mesh.Net</span></span>
       </a>
-      <input type="checkbox" id="nav-toggle" class="nav-toggle" />
-      <label
-        for="nav-toggle"
+      <button
+        id="nav-toggle"
         class="hamburger"
+        aria-expanded="false"
+        aria-controls="main-nav"
         aria-label="Toggle navigation"
-        tabindex="0"
       >
         <span></span><span></span><span></span>
-      </label>
-      <nav>
+      </button>
+      <nav id="main-nav">
         <ul class="nav-links">
           <li><a href="#">Home</a></li>
           <li><a href="#about">About</a></li>
@@ -1029,46 +1028,56 @@
 
     <script src="js/meshsim.js" defer></script>
     <script>
+      const nav = document.getElementById("main-nav");
       const navToggle = document.getElementById("nav-toggle");
-      const navLinks = document.querySelectorAll(".nav-links a");
 
-      // Hide menu after clicking a link
-      navLinks.forEach((link) => {
+      // Toggle hamburger menu
+      navToggle.addEventListener("click", () => {
+        const expanded = navToggle.getAttribute("aria-expanded") === "true";
+        navToggle.setAttribute("aria-expanded", String(!expanded));
+        nav.classList.toggle("open");
+        navToggle.classList.toggle("open");
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener("click", (e) => {
+        const clickedInsideNav = nav.contains(e.target);
+        const clickedHamburger = navToggle.contains(e.target);
+
+        if (
+          !clickedInsideNav &&
+          !clickedHamburger &&
+          nav.classList.contains("open")
+        ) {
+          nav.classList.remove("open");
+          navToggle.classList.remove("open");
+          navToggle.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      // Close menu after clicking a nav link
+      document.querySelectorAll(".nav-links a").forEach((link) => {
         link.addEventListener("click", () => {
-          if (navToggle.checked) navToggle.checked = false;
+          if (nav.classList.contains("open")) {
+            nav.classList.remove("open");
+            navToggle.classList.remove("open");
+            navToggle.setAttribute("aria-expanded", "false");
+          }
         });
       });
 
-      // Hide menu when clicking outside
-      document.addEventListener("click", (e) => {
-        const nav = document.querySelector("nav");
-        const hamburger = document.querySelector(".hamburger");
-
-        // Skip if clicking on the label (which toggles the checkbox)
-        if (hamburger.contains(e.target) || e.target.id === "nav-toggle") {
-          return;
-        }
-
-        if (navToggle.checked && !nav.contains(e.target)) {
-          navToggle.checked = false;
-        }
-      });
-
+      // Accordion behavior
       document.querySelectorAll(".accordion-title").forEach((title) => {
         title.addEventListener("click", () => {
           const item = title.parentElement;
           const wasOpen = item.classList.contains("active");
 
-          // Collapse all others to enforce single open
-          // document.querySelectorAll(".accordion-item").forEach((i) => i.classList.remove("active"));
-
           item.classList.toggle("active");
 
-          // Only scroll if it's expanding (was previously closed)
           if (!wasOpen) {
             setTimeout(() => {
               const content = item.querySelector(".accordion-content");
-              const extraOffset = 80; // space below the title
+              const extraOffset = 80;
               const y =
                 window.scrollY + item.getBoundingClientRect().top - extraOffset;
 
@@ -1076,7 +1085,7 @@
                 top: y,
                 behavior: "smooth",
               });
-            }, 200); // wait for the transition to animate
+            }, 200);
           }
         });
       });
