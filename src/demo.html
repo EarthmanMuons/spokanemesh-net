@@ -144,12 +144,6 @@
         border-radius: 4px;
       }
 
-      @media (max-width: 768px) {
-        .nav-links {
-          gap: 1rem;
-        }
-      }
-
       /* ---------- Hamburger + Mobile Menu ---------- */
       .nav-toggle {
         display: none; /* hidden checkbox */
@@ -223,7 +217,7 @@
         position: relative;
         width: 100%;
         height: 30vh;
-        min-height: 250px;
+        min-height: 360px;
         background-color: var(--bg-color);
         overflow: hidden;
         user-select: none;
@@ -244,6 +238,12 @@
         z-index: 2;
         padding: 1rem;
         pointer-events: none;
+      }
+
+      @media (max-width: 480px) {
+        .hero-overlay {
+          padding: 0.25rem;
+        }
       }
 
       .hero-text-background {
@@ -568,7 +568,7 @@
   </head>
   <body>
     <header class="navbar">
-      <a href="#" class="brand">
+      <a href="https://www.spokanemesh.net" class="brand">
         <img
           src="img/spokanemeshnet.webp"
           alt="Spokane Mesh Network Logo"
