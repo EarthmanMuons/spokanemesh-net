@@ -124,13 +124,13 @@
 
       .brand .highlight {
         color: var(--brand-accent);
-        transition: color 0.2s ease;
       }
 
       .brand:hover .highlight {
         color: var(--button-bg);
       }
 
+      .brand,
       .brand .brand-prefix,
       .brand .highlight {
         transition: color 0.2s ease;
@@ -156,8 +156,6 @@
       .nav-links a:hover {
         background-color: var(--button-clicked);
         color: var(--button-text);
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
       }
 
       /* ---------- Hamburger + Mobile Menu ---------- */
@@ -165,26 +163,22 @@
         display: none; /* hidden checkbox */
       }
 
-      .hamburger {
-        display: none;
-        flex-direction: column;
-        gap: 5px;
-        cursor: pointer;
-      }
-
-      .hamburger span {
-        width: 24px;
-        height: 2px;
-        background: var(--text-color);
-        transition:
-          transform 0.2s,
-          opacity 0.2s;
-      }
-
       @media (max-width: 768px) {
         /* show burger */
         .hamburger {
           display: flex;
+          flex-direction: column;
+          gap: 5px;
+          cursor: pointer;
+        }
+
+        .hamburger span {
+          width: 24px;
+          height: 2px;
+          background: var(--text-color);
+          transition:
+            transform 0.2s,
+            opacity 0.2s;
         }
 
         /* hide menu until toggled */
