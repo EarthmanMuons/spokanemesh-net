@@ -1061,11 +1061,9 @@
           if (!wasOpen) {
             setTimeout(() => {
               const content = item.querySelector(".accordion-content");
-              const extraOffset = 60; // space below the title
+              const extraOffset = 80; // space below the title
               const y =
-                window.scrollY +
-                content.getBoundingClientRect().bottom -
-                extraOffset;
+                window.scrollY + item.getBoundingClientRect().top - extraOffset;
 
               window.scrollTo({
                 top: y,
