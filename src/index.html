@@ -3,34 +3,474 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Spokane Mesh Network</title>
-    <style>
-      body {
-        background-color: #fff;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-      }
-      img {
-        max-width: 100%;
-        height: auto;
-      }
-    </style>
+    <title>Spokane Mesh Network - Every Node Counts</title>
+    <meta
+      name="description"
+      content="Join the Spokane Mesh Network, a community-powered project bringing off-grid communication to the Inland Northwest using affordable radios and open-source tools."
+    />
+    <meta
+      property="og:title"
+      content="Spokane Mesh Network - Every Node Counts"
+    />
+    <meta
+      property="og:description"
+      content="Text, track, & coordinate. Anywhere from the Palouse wheat fields to the Selkirk peaks. Join us in building a resilient, community-owned mesh network for the Inland Northwest."
+    />
+    <meta
+      property="og:image"
+      content="https://www.spokanemesh.net/img/og-image.jpg"
+    />
+    <meta property="og:url" content="https://www.spokanemesh.net/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Spokane Mesh Network" />
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <a href="https://groups.google.com/g/spokanemeshnet">
-      <img
-        src="img/spokanemeshnet-logo-1024w.webp"
-        srcset="
-          img/spokanemeshnet-logo-320w.webp   320w,
-          img/spokanemeshnet-logo-768w.webp   768w,
-          img/spokanemeshnet-logo-1024w.webp 1024w
-        "
-        sizes="(max-width: 1024px) 100vw, 1024px"
-        alt="Spokane Mesh Network Logo"
-      />
-    </a>
+    <header class="navbar">
+      <a href="https://www.spokanemesh.net" class="brand">
+        <img
+          src="img/spokanemeshnet.webp"
+          alt="Spokane Mesh Network Logo"
+          class="nav-logo"
+        />
+        <span>Spokane<span class="highlight">Mesh.Net</span></span>
+      </a>
+      <button
+        id="nav-toggle"
+        class="hamburger"
+        aria-expanded="false"
+        aria-controls="main-nav"
+        aria-label="Toggle navigation"
+      >
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="main-nav">
+        <ul class="nav-links">
+          <li><a href="#">Home</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#get-involved">Get Involved</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <section class="hero-section">
+      <div class="hero-overlay">
+        <div class="hero-text-background">
+          <h1 class="hero-title">📵 No bars? No problem.</h1>
+          <p class="hero-description">
+            <strong>Text, track, & coordinate.</strong> Anywhere from the
+            Palouse wheat fields to the Selkirk peaks. Join us in building a
+            resilient, community-owned mesh network for the
+            <em>Inland Northwest</em>.
+          </p>
+        </div>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="static-canvas"></canvas>
+        <canvas id="dynamic-canvas"></canvas>
+      </div>
+    </section>
+
+    <div class="controls" id="controls-container"></div>
+
+    <section id="about" class="info-section">
+      <div class="info-container">
+        <h2>About Our Initiative</h2>
+        <p>
+          <strong>Spokane Mesh Network</strong> is a volunteer-driven community
+          initiative to build a wireless communications network across the
+          Inland Northwest. Powered by the
+          <a href="https://meshcore.co.uk/">MeshCore</a> platform, it connects
+          phones and affordable radios to relay text messages and GPS locations
+          across long distances.
+          <em>No cell service, Wi-Fi, or satellites required.</em>
+        </p>
+
+        <div class="features-grid">
+          <div class="feature">
+            <div class="icon">🥾</div>
+            <h3>Off-Grid Communication</h3>
+            <p>
+              A decentralized network that works even when traditional
+              infrastructure fails.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="icon">🔒</div>
+            <h3>Privacy Focused</h3>
+            <p>
+              End-to-end encryption keeps your communications secure and
+              private.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="icon">🚨</div>
+            <h3>Emergency Ready</h3>
+            <p>
+              Stay prepared for natural disasters with dependable communication
+              tools.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-subsection">
+      <div class="info-container">
+        <h2>What is MeshCore?</h2>
+        <p>
+          <strong>MeshCore</strong> is the open-source software that powers the
+          backbone of our mesh network. It uses <em>LoRa</em>, a wireless
+          technology designed for long-range, low-power communication over
+          unlicensed frequencies in the radio spectrum.
+        </p>
+        <div class="cta-button">
+          <a href="https://meshcore.co.uk">Visit MeshCore.co.uk</a>
+        </div>
+
+        <p>
+          For reliable regional communication, we use the following radio
+          settings:
+        </p>
+        <div class="table-responsive">
+          <table class="radio-settings-table">
+            <thead>
+              <tr>
+                <th>Frequency (MHz)</th>
+                <th>Bandwidth (kHz)</th>
+                <th>Spreading Factor</th>
+                <th>Coding Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>910.525</td>
+                <td>250.0</td>
+                <td>11</td>
+                <td>5</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube-nocookie.com/embed/t1qne8uJBAc"
+          title="YouTube video player"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </section>
+
+    <section class="faq-section" id="faq">
+      <div class="info-container">
+        <h2>Frequently Asked Questions</h2>
+
+        <div class="accordion">
+          <div class="accordion-item">
+            <div class="accordion-title">
+              📡 &nbsp; What equipment do I need to join the network?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>To get started, you'll need:</p>
+                <ul>
+                  <li>
+                    A <strong>MeshCore-compatible LoRa radio</strong>, like the
+                    <a
+                      href="https://www.seeedstudio.com/SenseCAP-Card-Tracker-T1000-E-for-Meshtastic-p-5913.html"
+                      >SenseCap T1000-E</a
+                    >. Check out the
+                    <a href="https://meshcore.co.uk/get.html">hardware guide</a>
+                    for other recommended device options.
+                  </li>
+                  <li>
+                    A <strong>Chrome-based browser</strong> to flash MeshCore
+                    firmware onto the device using the
+                    <a href="https://flasher.meshcore.co.uk/"
+                      >online web flasher</a
+                    >.
+                  </li>
+                  <li>
+                    A
+                    <a href="https://meshcore.co.uk/apps.html"
+                      ><strong>MeshCore client app</strong></a
+                    >
+                    installed on your smartphone or computer.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-title">
+              💸 &nbsp; How much does it cost to participate?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>
+                  Most devices costs between <strong>$30-80</strong> depending
+                  on what you choose. There are
+                  <em>no subscription fees</em> and participation in the network
+                  and community is completely free.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-title">
+              🕵️‍♂️ &nbsp; Is my communication on the network private?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>
+                  Yes. <strong>MeshCore uses AES-128 encryption</strong> for all
+                  messages by default. Even <em>public channels</em> encrypt
+                  messages in transit.
+                </p>
+
+                <p>For added privacy:</p>
+                <ul>
+                  <li>
+                    Create <em>private channels</em> for groups of friends or
+                    family.
+                  </li>
+                  <li>
+                    Send <em>direct messages</em> between individual devices.
+                    Only the intended recipient can read them.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-title">
+              🪪 &nbsp; Do I need a license to operate on the network?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>
+                  No license is needed. Unlike ham radio, which needs an FCC
+                  amateur radio license, Meshcore runs on
+                  <strong>unlicensed ISM bands</strong> (typically 915 MHz in
+                  North America) that are legal for anyone to use.
+                </p>
+
+                <p>
+                  That said, we encourage members to learn about responsible
+                  radio use and make sure their devices are configured with
+                  appropriate power settings to avoid interference with other
+                  services.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-title">
+              🤓 &nbsp; I'm not very technical. Can I still help?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>
+                  Absolutely! There are several ways to support the network even
+                  if you're not into tech:
+                </p>
+
+                <ul>
+                  <li>
+                    <strong>Donate</strong> to help fund public infrastructure
+                    like repeaters and node hardware.
+                  </li>
+                  <li>
+                    <strong>Volunteer</strong> your time, skills, or location
+                    (e.g. rooftop or property) for node installations.
+                  </li>
+                  <li>
+                    <strong>Spread the word.</strong> Tell your neighbors, share
+                    on social media, or invite others to join.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-title">
+              🙈 &nbsp; What's the difference between MeshCore and
+              Meshtastic&#8239;&reg;?
+              <span class="accordion-icon"></span>
+            </div>
+            <div class="accordion-content">
+              <div class="accordion-content-inner">
+                <p>TBD. We're working on a clear comparison...stay tuned.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <noscript>
+      <style>
+        .accordion-item .accordion-content {
+          max-height: none !important;
+          overflow: visible;
+        }
+
+        .accordion-icon {
+          display: none !important;
+        }
+      </style>
+    </noscript>
+
+    <section class="info-subsection" id="get-involved">
+      <div class="info-container get-involved-flex">
+        <div class="get-involved-text">
+          <h2>Get Involved!</h2>
+          <p>
+            <strong>Ready to help build the mesh?</strong> Interested in
+            learning more?
+          </p>
+          <ul>
+            <li>
+              Sign up for our
+              <a href="https://groups.google.com/g/spokanemeshnet"
+                >mailing list</a
+              >
+              to coordinate, discuss ideas, troubleshoot, and share updates with
+              the local community.
+            </li>
+            <li>
+              Join the
+              <a href="https://discord.com/invite/H62Re4DCeD"
+                >MeshCore Discord Server</a
+              >
+              to connect with other users around the world.
+            </li>
+            <li>
+              Reach out with any questions or ideas:
+              <a href="mailto:info@spokanemesh.net">info@spokanemesh.net</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="logo-container">
+          <img
+            src="img/spokanemeshnet.webp"
+            alt="Spokane Mesh Network Logo"
+            class="involved-logo"
+          />
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="footer-container">
+        <span>
+          <a href="https://creativecommons.org/publicdomain/zero/1.0/">
+            <span class="cc0-icon" aria-hidden="true">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 30 30"
+                width="14"
+                height="14"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M4.443 4.36C7.3 1.447 10.807 0 14.97 0c4.196 0 7.777 1.462 10.725 4.39a14.365 14.365 0 013.214 4.843C29.639 11.037 30 12.964 30 15c0 2.055-.36 3.984-1.093 5.788-.714 1.785-1.781 3.362-3.193 4.737a15.399 15.399 0 01-4.978 3.32A14.972 14.972 0 0114.969 30c-1.983 0-3.883-.374-5.705-1.125-1.804-.767-3.428-1.869-4.874-3.298-1.428-1.446-2.516-3.069-3.266-4.873A14.701 14.701 0 010 15c0-1.982.374-3.882 1.124-5.704a15.224 15.224 0 013.32-4.937zM23.73 6.312C21.319 3.903 18.424 2.7 15.03 2.7c-3.429 0-6.316 1.2-8.655 3.591a13.054 13.054 0 00-2.731 4.044A11.899 11.899 0 002.7 15c0 1.607.32 3.154.945 4.653a12.806 12.806 0 002.73 3.992 12.651 12.651 0 003.993 2.68c1.482.607 3.038.913 4.663.913 1.608 0 3.154-.31 4.654-.935a12.9 12.9 0 004.097-2.71C26.12 21.307 27.3 18.447 27.3 15c0-1.66-.306-3.234-.914-4.716a12.033 12.033 0 00-2.657-3.97zM8.802 15c0-3.961 1.246-8.634 6.198-8.634s6.197 4.673 6.197 8.634c0 3.962-1.245 8.634-6.197 8.634-4.953 0-6.198-4.672-6.198-8.634zm6.755-5.305A2.291 2.291 0 0015 9.622c-2.547 0-2.668 3.633-2.668 5.377 0 .562.014 1.313.116 2.08l3.298-6.06c.342-.592.168-1.016-.19-1.324zM17.668 15c0-.683-.025-1.654-.2-2.584l-3.686 6.366c-.514.772-.157 1.209.41 1.45.05.02.105.037.157.052l.095.031c.172.043.356.064.557.064 2.546 0 2.667-3.634 2.667-5.379z"
+                />
+              </svg>
+            </span>
+            <strong>CC0:</strong> This work is dedicated to the public domain
+          </a>
+        </span>
+        <span class="footer-separator">|</span>
+        <span>
+          <a href="https://github.com/EarthmanMuons/spokanemesh-net">
+            View source on GitHub
+          </a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="js/meshsim.js" defer></script>
+    <script>
+      const nav = document.getElementById("main-nav");
+      const navToggle = document.getElementById("nav-toggle");
+
+      // Toggle hamburger menu
+      navToggle.addEventListener("click", () => {
+        const expanded = navToggle.getAttribute("aria-expanded") === "true";
+        navToggle.setAttribute("aria-expanded", String(!expanded));
+        nav.classList.toggle("open");
+        navToggle.classList.toggle("open");
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener("click", (e) => {
+        const clickedInsideNav = nav.contains(e.target);
+        const clickedHamburger = navToggle.contains(e.target);
+
+        if (
+          !clickedInsideNav &&
+          !clickedHamburger &&
+          nav.classList.contains("open")
+        ) {
+          nav.classList.remove("open");
+          navToggle.classList.remove("open");
+          navToggle.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      // Close menu after clicking a nav link
+      document.querySelectorAll(".nav-links a").forEach((link) => {
+        link.addEventListener("click", () => {
+          if (nav.classList.contains("open")) {
+            nav.classList.remove("open");
+            navToggle.classList.remove("open");
+            navToggle.setAttribute("aria-expanded", "false");
+          }
+        });
+      });
+
+      // Accordion behavior
+      document.querySelectorAll(".accordion-title").forEach((title) => {
+        title.addEventListener("click", () => {
+          const item = title.parentElement;
+          const wasOpen = item.classList.contains("active");
+
+          item.classList.toggle("active");
+
+          if (!wasOpen) {
+            setTimeout(() => {
+              const content = item.querySelector(".accordion-content");
+              const extraOffset = 80;
+              const y =
+                window.scrollY + item.getBoundingClientRect().top - extraOffset;
+
+              window.scrollTo({
+                top: y,
+                behavior: "smooth",
+              });
+            }, 200);
+          }
+        });
+      });
+    </script>
   </body>
 </html>
