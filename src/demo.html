@@ -390,6 +390,36 @@
         margin-bottom: 0.5rem;
       }
 
+      .radio-settings-table {
+        width: 100%;
+        max-width: 600px;
+        margin: 2rem auto;
+        border-collapse: collapse;
+        font-size: 1rem;
+        text-align: center;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .radio-settings-table th,
+      .radio-settings-table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+      }
+
+      .radio-settings-table th {
+        background-color: var(--section-color);
+        color: var(--text-color);
+        font-weight: 600;
+      }
+
+      iframe {
+        display: block;
+        margin: 2rem auto;
+        max-width: 100%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
       .cta-button {
         text-align: center;
         margin-top: 2rem;
@@ -616,7 +646,7 @@
             <div class="icon">🚨</div>
             <h3>Emergency Ready</h3>
             <p>
-              Be prepared for natural disasters with reliable communication
+              Be prepared for natural disasters with dependable communication
               tools.
             </p>
           </div>
@@ -633,6 +663,40 @@
           designed for long-range, low-power communication over unlicensed radio
           bands.
         </p>
+        <p>
+          For reliable regional communication, we use the following radio
+          settings:
+        </p>
+        <table class="radio-settings-table">
+          <thead>
+            <tr>
+              <th>Frequency (MHz)</th>
+              <th>Bandwidth (kHz)</th>
+              <th>Spreading Factor</th>
+              <th>Coding Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>910.525</td>
+              <td>250.0</td>
+              <td>11</td>
+              <td>5</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube-nocookie.com/embed/t1qne8uJBAc"
+          title="YouTube video player"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+
         <div class="cta-button">
           <a
             href="https://meshcore.co.uk"
