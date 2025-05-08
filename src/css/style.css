@@ -490,6 +490,7 @@ iframe {
   transition: all 0.2s ease;
   font-size: 1.5rem;
   line-height: 1;
+  padding-left: 0.75rem;
 }
 
 .accordion-item.active .accordion-icon::before {
