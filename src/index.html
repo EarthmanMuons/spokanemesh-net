@@ -482,13 +482,16 @@
       document.querySelectorAll(".accordion-title").forEach((title) => {
         title.addEventListener("click", () => {
           const item = title.parentElement;
-          const wasOpen = item.classList.contains("active");
+          const content = item.querySelector(".accordion-content");
 
-          item.classList.toggle("active");
+          if (item.classList.contains("active")) {
+            item.classList.remove("active");
+            content.style.maxHeight = null;
+          } else {
+            item.classList.add("active");
+            content.style.maxHeight = content.scrollHeight + "px";
 
-          if (!wasOpen) {
             setTimeout(() => {
-              const content = item.querySelector(".accordion-content");
               const extraOffset = 80;
               const y =
                 window.scrollY + item.getBoundingClientRect().top - extraOffset;
@@ -497,7 +500,7 @@
                 top: y,
                 behavior: "smooth",
               });
-            }, 200);
+            }, 200); // wait for animation to start
           }
         });
       });

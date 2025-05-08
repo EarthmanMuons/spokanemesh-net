@@ -501,10 +501,6 @@ iframe {
   content: "+";
 }
 
-.accordion-item.active .accordion-content {
-  max-height: 500px;
-}
-
 /* ---------- GET INVOLVED SECTION ---------- */
 .get-involved-flex {
   display: flex;
