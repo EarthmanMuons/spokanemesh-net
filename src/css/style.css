@@ -354,6 +354,31 @@ canvas {
   pointer-events: none;
 }
 
+@media (max-width: 768px) {
+  .hero-section {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    user-select: auto;
+    -webkit-user-select: auto;
+  }
+
+  .hero-overlay {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: 1rem 1rem;
+    pointer-events: auto !important;
+    z-index: 0;
+    background-color: var(--section-color-alt);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .canvas-wrapper {
+    height: 300px;
+  }
+}
+
 /* ---------- ABOUT SECTION ---------- */
 .info-section {
   box-shadow: inset 0 8px 8px -8px rgba(0, 0, 0, 0.5);
