@@ -232,7 +232,7 @@ const getHsla = createColorCache();
 
 // --- CORE SIMULATION FUNCTIONS ---
 
-function createNode(type) {
+function createNode(type, animate = false) {
   const { size, hitbox, minRange, maxRange, color } = nodeRuntime[type];
 
   const node = {
@@ -244,13 +244,24 @@ function createNode(type) {
     hitbox,
     range: getRandomInt(minRange, maxRange),
     color,
+    spawnProgress: animate ? 0 : 1,
   };
+
+  if (animate) {
+    node.spawnFrom = { x: simWidth / 2, y: simHeight + 100 };
+    node.x = node.spawnFrom.x;
+    node.y = node.spawnFrom.y;
+  }
 
   return node;
 }
 
 function isTooClose(x, y, minDistance) {
-  return nodes.some((n) => getDistance({ x, y }, n) < minDistance);
+  return nodes.some((n) => {
+    const checkX = n.targetX ?? n.x;
+    const checkY = n.targetY ?? n.y;
+    return getDistance({ x, y }, { x: checkX, y: checkY }) < minDistance;
+  });
 }
 
 function tryPlaceNode(node, minDistance) {
@@ -499,10 +510,15 @@ function createFloodMessage(source, originFloodId = null) {
 }
 
 const addNode = (type) => {
-  const node = createNode(type);
+  const node = createNode(type, true);
   const minDistance = node.size * 3;
   const success = tryPlaceNode(node, minDistance);
   if (success) {
+    node.targetX = node.x;
+    node.targetY = node.y;
+    node.x = node.spawnFrom.x;
+    node.y = node.spawnFrom.y;
+    node.spawnProgress = 0;
     nodes.push(node);
     computeNeighbors();
     needsStaticRedraw = true;
@@ -524,6 +540,8 @@ function computeNeighbors() {
 
     for (const other of nodes) {
       if (node.id === other.id) continue;
+      if (node.spawnProgress < 1) continue;
+      if (other.spawnProgress < 1) continue;
 
       const distSq = getSquaredDistance(node, other);
       const inRange = distSq <= node.range * node.range;
@@ -880,6 +898,33 @@ function renderFrame() {
 }
 
 // --- SIMULATION UPDATE FUNCTIONS ---
+
+function updateNodeSpawns(deltaTime) {
+  const duration = 0.8;
+  let needsRecompute = false;
+
+  nodes.forEach((node) => {
+    if (node.spawnProgress < 1) {
+      node.spawnProgress = Math.min(
+        1,
+        node.spawnProgress + deltaTime / duration,
+      );
+      const t = node.spawnProgress;
+      const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      node.x = node.spawnFrom.x + (node.targetX - node.spawnFrom.x) * ease;
+      node.y = node.spawnFrom.y + (node.targetY - node.spawnFrom.y) * ease;
+      needsStaticRedraw = true;
+
+      if (node.spawnProgress === 1) {
+        needsRecompute = true;
+      }
+    }
+  });
+
+  if (needsRecompute) {
+    computeNeighbors();
+  }
+}
 
 function updatePacketDeliveryEffect(packet, deltaTime) {
   const duration = 0.6; // seconds
@@ -1257,6 +1302,7 @@ const animate = (timestamp) => {
   const deltaTime = Math.min(rawDelta, MAX_DELTA);
   lastFrameTime = timestamp;
 
+  updateNodeSpawns(deltaTime);
   updatePackets(deltaTime);
   updateBroadcasts(deltaTime);
   renderFrame();
