@@ -22,22 +22,22 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
     Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  background-color: #fff;
   color: var(--text-color);
+  background-color: #fff;
 }
 
 h2 {
-  font-size: 2rem;
   margin-bottom: 1rem;
+  font-size: 2rem;
   color: var(--packet-fill);
 }
 
@@ -53,8 +53,8 @@ p + p {
 ul {
   padding-left: 1.5rem;
   margin-top: 0.5rem;
-  line-height: 1.7;
   font-size: 1.05rem;
+  line-height: 1.7;
 }
 
 ul li {
@@ -63,8 +63,8 @@ ul li {
 }
 
 a {
-  color: var(--button-hover);
   font-weight: 500;
+  color: var(--button-hover);
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: color 0.2s ease;
@@ -78,32 +78,32 @@ a:hover {
 .navbar {
   position: sticky;
   top: 0;
-  width: 100%;
-  background-color: #fff;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 0.75rem 1.5rem;
+  background-color: #fff;
   box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
-  z-index: 1000;
 }
 
 .nav-logo {
   width: 36px;
   height: 36px;
-  border-radius: 4px;
   object-fit: contain;
+  border-radius: 4px;
 }
 
 .brand {
   display: flex;
-  align-items: center;
   gap: 0.6rem;
+  align-items: center;
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-color);
-  transition: color 0.2s ease;
   text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 .brand span {
@@ -111,8 +111,8 @@ a:hover {
 }
 
 .brand .highlight {
-  color: var(--brand-accent);
   margin-left: 0.1em;
+  color: var(--brand-accent);
 }
 
 .brand,
@@ -130,25 +130,25 @@ a:hover {
 }
 
 .nav-links {
-  list-style: none;
   display: flex;
   gap: 1rem;
+  list-style: none;
 }
 
 .nav-links a {
-  text-decoration: none;
-  color: var(--text-color);
+  padding: 0.25rem 0.5rem;
   font-weight: 500;
+  color: var(--text-color);
+  text-decoration: none;
+  border-radius: 4px;
   transition:
     color 0.1s,
     background-color 0.4s;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
 }
 
 .nav-links a:hover {
-  background-color: var(--button-clicked);
   color: var(--button-text);
+  background-color: var(--button-clicked);
 }
 
 /* ---------- Hamburger + Mobile Menu ---------- */
@@ -182,12 +182,12 @@ a:hover {
     position: absolute;
     top: 100%;
     right: 0;
-    background: #fff;
     width: 200px;
-    box-shadow: 0 4px 8px rgb(0 0 0 / 8%);
-    transform: translateY(-20px);
-    opacity: 0;
     pointer-events: none;
+    background: #fff;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 8%);
+    opacity: 0;
+    transform: translateY(-20px);
     transition:
       transform 0.2s ease,
       opacity 0.2s ease;
@@ -200,9 +200,9 @@ a:hover {
   }
 
   nav.open {
-    transform: translateY(0);
-    opacity: 1;
     pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .hamburger.open span:nth-child(1) {
@@ -224,23 +224,23 @@ a:hover {
   width: 100%;
   height: 30vh;
   min-height: 360px;
-  background-color: var(--bg-color);
   overflow: hidden;
-  user-select: none;
   touch-action: manipulation;
+  user-select: none;
+  background-color: var(--bg-color);
 }
 
 .hero-overlay {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  z-index: 2;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   padding: 1rem;
   pointer-events: none;
 }
@@ -252,23 +252,23 @@ a:hover {
 }
 
 .hero-text-background {
-  background-color: rgb(0 0 0 / 60%);
-  padding: 1.5rem 2rem;
-  border-radius: 5px;
   max-width: 90%;
+  padding: 1.5rem 2rem;
   text-align: center;
+  background-color: rgb(0 0 0 / 60%);
+  border-radius: 5px;
 }
 
 .hero-title {
+  margin-bottom: 1rem;
   font-size: 2.5rem;
   font-weight: 700;
-  margin-bottom: 1rem;
   color: white;
 }
 
 .hero-description {
-  font-size: 1.2rem;
   max-width: 600px;
+  font-size: 1.2rem;
   color: white;
 }
 
@@ -290,8 +290,8 @@ canvas {
 .controls {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 0.6rem;
+  justify-content: center;
   padding: 1rem;
   margin: 0 auto;
   user-select: none;
@@ -299,29 +299,29 @@ canvas {
 }
 
 .controls button {
-  background-color: var(--button-bg);
-  color: var(--button-text);
-  border: none;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: background-color 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  color: var(--button-text);
   touch-action: manipulation;
+  cursor: pointer;
   user-select: none;
+  background-color: var(--button-bg);
+  border: none;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
 .icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: auto;
   font-size: inherit;
   line-height: 1;
-  height: auto;
 }
 
 .controls .icon {
@@ -338,16 +338,16 @@ canvas {
 
 #debug-info {
   position: fixed;
-  bottom: 8px;
   right: 8px;
-  background: rgb(0 0 0 / 60%);
-  color: #0f0;
+  bottom: 8px;
+  z-index: 9999;
+  padding: 4px 8px;
   font-family: monospace;
   font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  z-index: 9999;
+  color: #0f0;
   pointer-events: none;
+  background: rgb(0 0 0 / 60%);
+  border-radius: 4px;
 }
 
 @media (width <= 768px) {
@@ -362,9 +362,9 @@ canvas {
     width: 100%;
     height: auto;
     padding: 1rem;
+    pointer-events: auto;
     background: url("../img/opengraph-background.webp") center / cover no-repeat;
     box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
-    pointer-events: auto;
   }
 
   .canvas-wrapper {
@@ -374,16 +374,16 @@ canvas {
 
 /* ---------- ABOUT SECTION ---------- */
 .info-section {
-  box-shadow: inset 0 8px 8px -8px rgb(0 0 0 / 50%);
   padding: 3rem 1.5rem;
-  background-color: var(--section-color);
   color: var(--text-color);
   text-align: left;
+  background-color: var(--section-color);
+  box-shadow: inset 0 8px 8px -8px rgb(0 0 0 / 50%);
 }
 
 .info-subsection {
-  background-color: #fff;
   padding: 3rem 1.5rem;
+  background-color: #fff;
 }
 
 .info-container {
@@ -394,8 +394,8 @@ canvas {
 .features-grid {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 2rem;
+  justify-content: center;
   margin-top: 2.5rem;
 }
 
@@ -407,23 +407,23 @@ canvas {
 }
 
 .feature .icon {
-  font-size: 2.5rem;
   margin-bottom: 0.5rem;
+  font-size: 2.5rem;
 }
 
 .cta-button {
-  text-align: center;
   margin: 2rem 0;
+  text-align: center;
 }
 
 /* stylelint-disable-next-line no-descending-specificity */
 .cta-button a {
   display: inline-block;
-  background-color: var(--button-bg);
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
   color: var(--button-text);
   text-decoration: none;
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
+  background-color: var(--button-bg);
   border-radius: 4px;
   transition: background-color 0.2s;
 }
@@ -440,36 +440,36 @@ canvas {
 .radio-settings-table {
   max-width: 600px;
   margin: 2rem auto;
-  border-collapse: collapse;
   font-size: 1rem;
   text-align: center;
+  border-collapse: collapse;
   background-color: #fff;
   box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
 }
 
 .radio-settings-table th,
 .radio-settings-table td {
-  border: 1px solid #ddd;
   padding: 0.75rem;
+  border: 1px solid #ddd;
 }
 
 .radio-settings-table th {
-  background-color: var(--section-color);
-  color: var(--text-color);
   font-weight: 600;
+  color: var(--text-color);
+  background-color: var(--section-color);
 }
 
 iframe {
   display: block;
-  margin: 2rem auto;
   max-width: 100%;
+  margin: 2rem auto;
   box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
 }
 
 /* ---------- FAQ SECTION ---------- */
 .faq-section {
-  background-color: var(--section-color-alt);
   padding: 3rem 1.5rem;
+  background-color: var(--section-color-alt);
 }
 
 .accordion {
@@ -478,20 +478,20 @@ iframe {
 }
 
 .accordion-item {
+  margin-bottom: 1rem;
+  overflow: hidden;
   background-color: white;
   border-radius: 8px;
-  margin-bottom: 1rem;
   box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
-  overflow: hidden;
 }
 
 .accordion-title {
-  padding: 1.5rem;
-  cursor: pointer;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .accordion-content {
@@ -506,10 +506,10 @@ iframe {
 }
 
 .accordion-icon {
-  transition: all 0.2s ease;
+  padding-left: 0.75rem;
   font-size: 1.5rem;
   line-height: 1;
-  padding-left: 0.75rem;
+  transition: all 0.2s ease;
 }
 
 .accordion-item .accordion-icon::before {
@@ -524,8 +524,8 @@ iframe {
 .get-involved-flex {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
   gap: 2rem;
+  align-items: flex-start;
 }
 
 .get-involved-text {
@@ -534,8 +534,8 @@ iframe {
 
 .logo-container {
   flex-shrink: 0;
-  text-align: right;
   align-self: flex-end;
+  text-align: right;
 }
 
 .involved-logo {
@@ -545,29 +545,29 @@ iframe {
 
 /* ---------- FOOTER ---------- */
 .site-footer {
-  background-color: #2e2e2e;
-  color: #ccc;
   padding: 1rem;
-  text-align: center;
   font-size: 0.85rem;
+  color: #ccc;
+  text-align: center;
+  background-color: #2e2e2e;
 }
 
 .footer-container {
-  max-width: 800px;
-  margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 0.5rem 1rem;
+  justify-content: center;
+  max-width: 800px;
+  margin: 0 auto;
   text-align: center;
 }
 
 /* stylelint-disable-next-line no-descending-specificity */
 .site-footer a {
+  font-size: 0.85rem;
   color: #aaa;
   text-decoration: none;
   transition: color 0.2s ease;
-  font-size: 0.85rem;
 }
 
 .site-footer a:hover {
@@ -593,9 +593,9 @@ iframe {
 }
 
 .cc0-icon svg {
-  height: 1em;
-  width: auto;
   display: inline-block;
+  width: auto;
+  height: 1em;
   overflow: visible;
 }
 
@@ -614,8 +614,8 @@ iframe {
   }
 
   .controls button {
-    font-size: 0.8rem;
     padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
   }
 
   .controls button .icon {
