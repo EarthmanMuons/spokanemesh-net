@@ -850,7 +850,10 @@ const drawPackets = (ctx) => {
 
       ctx.beginPath();
       ctx.arc(packet.x, packet.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = getHsla(packetRuntime.color, 1 - easedProgress);
+      ctx.fillStyle = getHsla(
+        packetRuntime.color,
+        0.1 + 0.9 * (1 - easedProgress),
+      );
       ctx.fill();
     }
 
