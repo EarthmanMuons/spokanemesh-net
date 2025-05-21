@@ -1,5 +1,15 @@
 :root {
-  /* Inland Northwest inspired color palette */
+  --bg-color: hsl(45deg 29% 95%); /* #f5f3ed */
+  --section-color: hsl(0deg 0% 96%); /* #f4f4f4 */
+  --section-color-alt: hsl(210deg 36% 96%); /* #f0f4f8 */
+  --text-color: hsl(0deg 0% 20%); /* #333333 */
+
+  --brand-accent: hsl(205deg 49% 34%); /* #2d5e82 */
+  --button-bg: hsl(200deg 54% 54%); /* #4a9fc9 */
+  --button-hover: hsl(205deg 49% 34%); /* #2d5e82 */
+  --button-clicked: hsl(85deg 40% 45%); /* #7aa145 */
+  --button-text: hsl(0deg 0% 100%); /* #ffffff */
+
   --client-fill: hsl(200deg 54% 54%); /* #4a9fc9 */
   --client-stroke: hsl(200deg 54% 44%);
   --repeater-fill: hsl(205deg 49% 34%); /* #2d5e82 */
@@ -7,21 +17,12 @@
   --packet-fill: hsl(11deg 61% 62%); /* #d97762 */
   --packet-stroke: hsl(0deg 0% 100%); /* #ffffff */
   --broadcast-stroke: hsl(40deg 77% 57%); /* #e6ad3f */
-  --button-bg: hsl(200deg 54% 54%); /* #4a9fc9 */
-  --button-hover: hsl(205deg 49% 34%); /* #2d5e82 */
-  --button-clicked: hsl(85deg 40% 45%); /* #7aa145 */
-  --button-text: hsl(0deg 0% 100%); /* #ffffff */
-  --brand-accent: hsl(205deg 49% 34%); /* #2d5e82 */
-  --bg-color: hsl(45deg 29% 95%); /* #f5f3ed */
-  --text-color: hsl(0deg 0% 20%); /* #333333 */
-  --section-color: hsl(0deg 0% 96%); /* #f4f4f4 */
-  --section-color-alt: hsl(210deg 36% 96%); /* #f0f4f8 */
 
   scroll-behavior: smooth;
   scroll-padding-top: 40px;
 }
 
-* {
+:where(*) {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
