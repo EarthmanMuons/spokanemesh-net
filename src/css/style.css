@@ -1,21 +1,21 @@
 :root {
   /* Inland Northwest inspired color palette */
-  --client-fill: hsl(200, 54%, 54%); /* #4a9fc9 */
-  --client-stroke: hsl(200, 54%, 44%);
-  --repeater-fill: hsl(205, 49%, 34%); /* #2d5e82 */
-  --repeater-stroke: hsl(205, 49%, 24%);
-  --packet-fill: hsl(11, 61%, 62%); /* #d97762 */
-  --packet-stroke: hsl(0, 0%, 100%); /* #ffffff */
-  --broadcast-stroke: hsl(40, 77%, 57%); /* #e6ad3f */
-  --button-bg: hsl(200, 54%, 54%); /* #4a9fc9 */
-  --button-hover: hsl(205, 49%, 34%); /* #2d5e82 */
-  --button-clicked: hsl(85, 40%, 45%); /* #7aa145 */
-  --button-text: hsl(0, 0%, 100%); /* #ffffff */
-  --brand-accent: hsl(205, 49%, 34%); /* #2d5e82 */
-  --bg-color: hsl(45, 29%, 95%); /* #f5f3ed */
-  --text-color: hsl(0, 0%, 20%); /* #333333 */
-  --section-color: hsl(0, 0%, 96%); /* #f4f4f4 */
-  --section-color-alt: hsl(210, 36%, 96%); /* #f0f4f8 */
+  --client-fill: hsl(200deg 54% 54%); /* #4a9fc9 */
+  --client-stroke: hsl(200deg 54% 44%);
+  --repeater-fill: hsl(205deg 49% 34%); /* #2d5e82 */
+  --repeater-stroke: hsl(205deg 49% 24%);
+  --packet-fill: hsl(11deg 61% 62%); /* #d97762 */
+  --packet-stroke: hsl(0deg 0% 100%); /* #ffffff */
+  --broadcast-stroke: hsl(40deg 77% 57%); /* #e6ad3f */
+  --button-bg: hsl(200deg 54% 54%); /* #4a9fc9 */
+  --button-hover: hsl(205deg 49% 34%); /* #2d5e82 */
+  --button-clicked: hsl(85deg 40% 45%); /* #7aa145 */
+  --button-text: hsl(0deg 0% 100%); /* #ffffff */
+  --brand-accent: hsl(205deg 49% 34%); /* #2d5e82 */
+  --bg-color: hsl(45deg 29% 95%); /* #f5f3ed */
+  --text-color: hsl(0deg 0% 20%); /* #333333 */
+  --section-color: hsl(0deg 0% 96%); /* #f4f4f4 */
+  --section-color-alt: hsl(210deg 36% 96%); /* #f0f4f8 */
 
   scroll-behavior: smooth;
   scroll-padding-top: 40px;
@@ -31,7 +31,7 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
     Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  background-color: #ffffff;
+  background-color: #fff;
   color: var(--text-color);
 }
 
@@ -79,12 +79,12 @@ a:hover {
   position: sticky;
   top: 0;
   width: 100%;
-  background-color: #ffffff;
+  background-color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
   z-index: 1000;
 }
 
@@ -115,18 +115,18 @@ a:hover {
   margin-left: 0.1em;
 }
 
+.brand,
+.brand .brand-prefix,
+.brand .highlight {
+  transition: color 0.2s ease;
+}
+
 .brand:hover {
   color: var(--button-bg);
 }
 
 .brand:hover .highlight {
   color: var(--button-bg);
-}
-
-.brand,
-.brand .brand-prefix,
-.brand .highlight {
-  transition: color 0.2s ease;
 }
 
 .nav-links {
@@ -153,7 +153,7 @@ a:hover {
 
 /* ---------- Hamburger + Mobile Menu ---------- */
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   /* show burger */
   .hamburger {
     all: unset;
@@ -182,9 +182,9 @@ a:hover {
     position: absolute;
     top: 100%;
     right: 0;
-    background: #ffffff;
+    background: #fff;
     width: 200px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 8px rgb(0 0 0 / 8%);
     transform: translateY(-20px);
     opacity: 0;
     pointer-events: none;
@@ -208,9 +208,11 @@ a:hover {
   .hamburger.open span:nth-child(1) {
     transform: translateY(7px) rotate(45deg);
   }
+
   .hamburger.open span:nth-child(2) {
     opacity: 0;
   }
+
   .hamburger.open span:nth-child(3) {
     transform: translateY(-7px) rotate(-45deg);
   }
@@ -225,7 +227,6 @@ a:hover {
   background-color: var(--bg-color);
   overflow: hidden;
   user-select: none;
-  -webkit-user-select: none;
   touch-action: manipulation;
 }
 
@@ -244,14 +245,14 @@ a:hover {
   pointer-events: none;
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .hero-overlay {
     padding: 0.25rem;
   }
 }
 
 .hero-text-background {
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgb(0 0 0 / 60%);
   padding: 1.5rem 2rem;
   border-radius: 5px;
   max-width: 90%;
@@ -283,7 +284,7 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgb(255 255 255 / 50%);
 }
 
 .controls {
@@ -294,7 +295,7 @@ canvas {
   padding: 1rem;
   margin: 0 auto;
   user-select: none;
-  background: linear-gradient(to bottom, hsl(45, 29%, 95%), transparent);
+  background: linear-gradient(to bottom, hsl(45deg 29% 95%), transparent);
 }
 
 .controls button {
@@ -312,23 +313,6 @@ canvas {
   gap: 0.4rem;
   touch-action: manipulation;
   user-select: none;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-}
-
-.controls button .icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-}
-
-.controls button:hover {
-  background-color: var(--button-hover);
-}
-
-.controls button.clicked {
-  background-color: var(--button-clicked);
 }
 
 .icon {
@@ -340,12 +324,24 @@ canvas {
   height: auto;
 }
 
+.controls .icon {
+  font-size: 1.2rem;
+}
+
+.controls button:hover {
+  background-color: var(--button-hover);
+}
+
+.controls button.clicked {
+  background-color: var(--button-clicked);
+}
+
 #debug-info {
   position: fixed;
   bottom: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #00ff00;
+  background: rgb(0 0 0 / 60%);
+  color: #0f0;
   font-family: monospace;
   font-size: 12px;
   padding: 4px 8px;
@@ -354,7 +350,7 @@ canvas {
   pointer-events: none;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .hero-section {
     display: flex;
     flex-direction: column;
@@ -367,7 +363,7 @@ canvas {
     height: auto;
     padding: 1rem;
     background: url("../img/opengraph-background.webp") center / cover no-repeat;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
     pointer-events: auto;
   }
 
@@ -378,7 +374,7 @@ canvas {
 
 /* ---------- ABOUT SECTION ---------- */
 .info-section {
-  box-shadow: inset 0 8px 8px -8px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 8px 8px -8px rgb(0 0 0 / 50%);
   padding: 3rem 1.5rem;
   background-color: var(--section-color);
   color: var(--text-color);
@@ -386,7 +382,7 @@ canvas {
 }
 
 .info-subsection {
-  background-color: #ffffff;
+  background-color: #fff;
   padding: 3rem 1.5rem;
 }
 
@@ -420,6 +416,7 @@ canvas {
   margin: 2rem 0;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cta-button a {
   display: inline-block;
   background-color: var(--button-bg);
@@ -447,7 +444,7 @@ canvas {
   font-size: 1rem;
   text-align: center;
   background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
 }
 
 .radio-settings-table th,
@@ -466,7 +463,7 @@ iframe {
   display: block;
   margin: 2rem auto;
   max-width: 100%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
 }
 
 /* ---------- FAQ SECTION ---------- */
@@ -484,7 +481,7 @@ iframe {
   background-color: white;
   border-radius: 8px;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
   overflow: hidden;
 }
 
@@ -515,12 +512,12 @@ iframe {
   padding-left: 0.75rem;
 }
 
-.accordion-item.active .accordion-icon::before {
-  content: "–";
-}
-
 .accordion-item .accordion-icon::before {
   content: "+";
+}
+
+.accordion-item.active .accordion-icon::before {
+  content: "–";
 }
 
 /* ---------- GET INVOLVED SECTION ---------- */
@@ -549,7 +546,7 @@ iframe {
 /* ---------- FOOTER ---------- */
 .site-footer {
   background-color: #2e2e2e;
-  color: #cccccc;
+  color: #ccc;
   padding: 1rem;
   text-align: center;
   font-size: 0.85rem;
@@ -565,23 +562,24 @@ iframe {
   text-align: center;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .site-footer a {
-  color: #aaaaaa;
+  color: #aaa;
   text-decoration: none;
   transition: color 0.2s ease;
   font-size: 0.85rem;
 }
 
 .site-footer a:hover {
-  color: #ffffff;
+  color: #fff;
 }
 
 .footer-separator {
-  color: #888888;
+  color: #888;
   user-select: none;
 }
 
-@media (max-width: 530px) {
+@media (width <= 530px) {
   .footer-separator {
     display: none;
   }
@@ -602,7 +600,7 @@ iframe {
 }
 
 /* ---------- MOBILE SCALING ---------- */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .hero-title {
     font-size: 1.8rem;
   }

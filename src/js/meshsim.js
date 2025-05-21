@@ -189,12 +189,44 @@ function parseHsl(string) {
     throw new Error(`Invalid HSL string: ${string}`);
   }
 
-  const [h, s, l] = string
-    .slice(4, -1) // strip "hsl(" and ")"
-    .split(",")
-    .map((part) => parseFloat(part)); // parse and strip '%' implicitly
+  const inner = string.slice(4, -1).trim();
 
-  return { h, s, l };
+  // Handle slash-separated alpha
+  const [colorPart, alphaPart] = inner.split("/").map((part) => part.trim());
+
+  // Handle space or comma separated syntax
+  const parts = colorPart.includes(",")
+    ? colorPart.split(",").map((part) => part.trim())
+    : colorPart.split(/\s+/);
+
+  if (parts.length < 3) {
+    throw new Error(`Incomplete HSL string: ${string}`);
+  }
+
+  // Parse hue with optional unit
+  let hStr = parts[0];
+  const hueMatch = hStr.match(/^([\d.]+)(deg|rad|grad|turn)?$/);
+  if (!hueMatch) throw new Error(`Invalid hue: ${hStr}`);
+  let h = parseFloat(hueMatch[1]);
+  const unit = hueMatch[2] || "deg";
+
+  switch (unit) {
+    case "rad":
+      h *= 180 / Math.PI;
+      break;
+    case "grad":
+      h *= 360 / 400;
+      break;
+    case "turn":
+      h *= 360;
+      break;
+  }
+
+  const s = parseFloat(parts[1]);
+  const l = parseFloat(parts[2]);
+  const a = alphaPart !== undefined ? parseFloat(alphaPart) : 1;
+
+  return { h, s, l, a };
 }
 
 function getCssColor(varName) {
