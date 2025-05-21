@@ -121,10 +121,6 @@ a:hover {
   transition: color 0.2s ease;
 }
 
-.brand:hover {
-  color: var(--button-bg);
-}
-
 .brand:hover .highlight {
   color: var(--button-bg);
 }
