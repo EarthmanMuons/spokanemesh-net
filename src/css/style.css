@@ -359,8 +359,6 @@ canvas {
     display: flex;
     flex-direction: column;
     height: auto;
-    user-select: auto;
-    -webkit-user-select: auto;
   }
 
   .hero-overlay {
@@ -368,10 +366,12 @@ canvas {
     width: 100%;
     height: auto;
     padding: 1rem 1rem;
-    pointer-events: auto !important;
+    pointer-events: auto;
     z-index: 0;
     background-color: var(--section-color-alt);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   .canvas-wrapper {
