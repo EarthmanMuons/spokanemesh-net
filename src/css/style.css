@@ -365,13 +365,10 @@ canvas {
     position: static;
     width: 100%;
     height: auto;
-    padding: 1rem 1rem;
-    pointer-events: auto;
-    z-index: 0;
+    padding: 1rem;
     background-color: var(--section-color-alt);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    user-select: text;
-    -webkit-user-select: text;
+    pointer-events: auto;
   }
 
   .canvas-wrapper {
