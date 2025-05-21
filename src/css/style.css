@@ -223,6 +223,8 @@ a:hover {
   overflow: hidden;
   touch-action: manipulation;
   user-select: none;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-user-select: none;
   background-color: var(--bg-color);
 }
 
@@ -291,6 +293,8 @@ canvas {
   padding: 1rem;
   margin: 0 auto;
   user-select: none;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-user-select: none;
   background: linear-gradient(to bottom, hsl(45deg 29% 95%), transparent);
 }
 
@@ -304,7 +308,6 @@ canvas {
   color: var(--button-text);
   touch-action: manipulation;
   cursor: pointer;
-  user-select: none;
   background-color: var(--button-bg);
   border: none;
   border-radius: 4px;
@@ -573,6 +576,8 @@ iframe {
 .footer-separator {
   color: #888;
   user-select: none;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-user-select: none;
 }
 
 @media (width <= 530px) {
