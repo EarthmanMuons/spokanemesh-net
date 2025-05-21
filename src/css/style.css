@@ -113,11 +113,6 @@ a:hover {
 .brand .highlight {
   margin-left: 0.1em;
   color: var(--brand-accent);
-}
-
-.brand,
-.brand .brand-prefix,
-.brand .highlight {
   transition: color 0.2s ease;
 }
 
@@ -147,32 +142,7 @@ a:hover {
   background-color: var(--button-clicked);
 }
 
-/* ---------- Hamburger + Mobile Menu ---------- */
-
 @media (width <= 768px) {
-  /* show burger */
-  .hamburger {
-    all: unset;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    cursor: pointer;
-  }
-
-  .hamburger:focus {
-    outline: auto;
-    outline-offset: 2px;
-  }
-
-  .hamburger span {
-    width: 24px;
-    height: 2px;
-    background: var(--text-color);
-    transition:
-      transform 0.2s,
-      opacity 0.2s;
-  }
-
   /* hide menu until toggled */
   nav {
     position: absolute;
@@ -201,6 +171,28 @@ a:hover {
     transform: translateY(0);
   }
 
+  .hamburger {
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+  }
+
+  .hamburger:focus {
+    outline: auto;
+    outline-offset: 2px;
+  }
+
+  .hamburger span {
+    width: 24px;
+    height: 2px;
+    background: var(--text-color);
+    transition:
+      transform 0.2s,
+      opacity 0.2s;
+  }
+
   .hamburger.open span:nth-child(1) {
     transform: translateY(7px) rotate(45deg);
   }
@@ -222,9 +214,9 @@ a:hover {
   min-height: 360px;
   overflow: hidden;
   touch-action: manipulation;
-  user-select: none;
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-user-select: none;
+  user-select: none;
   background-color: var(--bg-color);
 }
 
@@ -292,9 +284,9 @@ canvas {
   justify-content: center;
   padding: 1rem;
   margin: 0 auto;
-  user-select: none;
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-user-select: none;
+  user-select: none;
   background: linear-gradient(to bottom, hsl(45deg 29% 95%), transparent);
 }
 
@@ -366,8 +358,29 @@ canvas {
     box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
   }
 
+  .hero-title {
+    font-size: 1.8rem;
+  }
+
+  .hero-description {
+    font-size: 1rem;
+  }
+
   .canvas-wrapper {
     height: 300px;
+  }
+
+  .controls {
+    justify-content: center;
+  }
+
+  .controls button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .controls button .icon {
+    font-size: 1.2rem;
   }
 }
 
@@ -542,6 +555,18 @@ iframe {
   height: auto;
 }
 
+@media (width <= 768px) {
+  .get-involved-flex {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo-container {
+    align-self: center;
+    text-align: center;
+  }
+}
+
 /* ---------- FOOTER ---------- */
 .site-footer {
   padding: 1rem;
@@ -575,9 +600,9 @@ iframe {
 
 .footer-separator {
   color: #888;
-  user-select: none;
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-user-select: none;
+  user-select: none;
 }
 
 @media (width <= 530px) {
@@ -598,38 +623,4 @@ iframe {
   width: auto;
   height: 1em;
   overflow: visible;
-}
-
-/* ---------- MOBILE SCALING ---------- */
-@media (width <= 768px) {
-  .hero-title {
-    font-size: 1.8rem;
-  }
-
-  .hero-description {
-    font-size: 1rem;
-  }
-
-  .controls {
-    justify-content: center;
-  }
-
-  .controls button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-  }
-
-  .controls button .icon {
-    font-size: 1.2rem;
-  }
-
-  .get-involved-flex {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .logo-container {
-    align-self: center;
-    text-align: center;
-  }
 }
