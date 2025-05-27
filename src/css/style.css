@@ -605,12 +605,12 @@ iframe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  vertical-align: -0.15em;
+  vertical-align: -0.25em;
 }
 
 .cc0-icon svg {
   display: inline-block;
   width: auto;
-  height: 1em;
+  height: 1.2em;
   overflow: visible;
 }
