@@ -143,6 +143,10 @@ a:hover {
   background-color: var(--button-clicked);
 }
 
+.hamburger {
+  display: none;
+}
+
 @media (width <= 768px) {
   /* hide menu until toggled */
   nav {
