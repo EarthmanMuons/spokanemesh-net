@@ -210,8 +210,10 @@ a:hover {
 /* ---------- HERO SECTION ---------- */
 .hero-section {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  height: 30vh;
+  height: auto;
   min-height: 360px;
   overflow: hidden;
   touch-action: manipulation;
@@ -222,7 +224,7 @@ a:hover {
 }
 
 .hero-overlay {
-  position: absolute;
+  position: static;
   top: 0;
   left: 0;
   z-index: 2;
@@ -231,15 +233,11 @@ a:hover {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
+  height: auto;
   padding: 1rem;
   pointer-events: none;
-}
-
-@media (width <= 480px) {
-  .hero-overlay {
-    padding: 0.25rem;
-  }
+  background: url("../img/opengraph-background.webp") center / cover no-repeat;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
 }
 
 .hero-text-background {
@@ -266,7 +264,7 @@ a:hover {
 .canvas-wrapper {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 30vh;
 }
 
 canvas {
@@ -343,22 +341,6 @@ canvas {
 }
 
 @media (width <= 768px) {
-  .hero-section {
-    display: flex;
-    flex-direction: column;
-    height: auto;
-  }
-
-  .hero-overlay {
-    position: static;
-    width: 100%;
-    height: auto;
-    padding: 1rem;
-    pointer-events: auto;
-    background: url("../img/opengraph-background.webp") center / cover no-repeat;
-    box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
-  }
-
   .hero-title {
     font-size: 1.8rem;
   }
@@ -371,17 +353,9 @@ canvas {
     height: 300px;
   }
 
-  .controls {
-    justify-content: center;
-  }
-
   .controls button {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
-  }
-
-  .controls button .icon {
-    font-size: 1.2rem;
   }
 }
 
