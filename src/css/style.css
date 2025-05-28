@@ -280,6 +280,62 @@ canvas {
   border-bottom: 1px solid rgb(255 255 255 / 50%);
 }
 
+.info-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  padding: 0;
+  color: rgb(0 0 0 / 40%); /* light semi-transparent */
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: color 0.2s ease;
+}
+
+.info-button:hover {
+  color: var(--button-hover);
+}
+
+.info-button svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+.sim-info-panel {
+  position: fixed;
+  top: 128px;
+  left: 50%;
+  z-index: 100;
+  max-width: 80%;
+  padding: 1rem 1.5rem;
+  overflow: auto;
+  font-size: 0.9rem;
+  color: #111;
+  background: rgb(255 255 255 / 95%);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+  transform: translateX(-50%);
+}
+
+@media (width <= 768px) {
+  .sim-info-panel {
+    width: 90%;
+    max-width: none;
+  }
+}
+
+.sim-info-panel ul {
+  padding-left: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.sim-info-panel li {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;

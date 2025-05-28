@@ -1249,6 +1249,31 @@ function setupButtonListeners() {
   });
 }
 
+function setupSimInfoToggle() {
+  const infoBtn = document.getElementById("sim-info-button");
+  const infoPanel = document.getElementById("sim-info-panel");
+
+  if (!infoBtn || !infoPanel) return;
+
+  infoBtn.addEventListener("click", (e) => {
+    const isHidden = infoPanel.hasAttribute("hidden");
+    if (isHidden) {
+      infoPanel.removeAttribute("hidden");
+    } else {
+      infoPanel.setAttribute("hidden", "");
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const clickedInfoBtn = infoBtn.contains(e.target);
+    const clickedInsidePanel = infoPanel.contains(e.target);
+
+    if (!clickedInfoBtn && !clickedInsidePanel) {
+      infoPanel.setAttribute("hidden", "");
+    }
+  });
+}
+
 function setupNodeHoverListener(canvas) {
   canvas.addEventListener(
     "pointermove",
@@ -1316,6 +1341,7 @@ function setupEventListeners() {
   setupResizeListener();
   setupVisibilityObserver();
   setupButtonListeners();
+  setupSimInfoToggle();
   setupNodeHoverListener(dynamicCanvas);
   setupNodeClickListener(dynamicCanvas);
 }
