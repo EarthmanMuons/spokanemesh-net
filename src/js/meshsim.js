@@ -1264,6 +1264,13 @@ function setupSimInfoToggle() {
     }
   });
 
+  const closeBtn = infoPanel.querySelector(".sim-info-close");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      infoPanel.setAttribute("hidden", "");
+    });
+  }
+
   document.addEventListener("click", (e) => {
     const clickedInfoBtn = infoBtn.contains(e.target);
     const clickedInsidePanel = infoPanel.contains(e.target);

@@ -311,7 +311,6 @@ canvas {
   max-width: 80%;
   padding: 1rem 1.5rem;
   overflow: auto;
-  font-size: 0.9rem;
   color: #111;
   background: rgb(255 255 255 / 95%);
   border-radius: 8px;
@@ -321,8 +320,14 @@ canvas {
 
 @media (width <= 768px) {
   .sim-info-panel {
+    top: 100px;
     width: 90%;
     max-width: none;
+  }
+
+  .sim-info-panel p,
+  .sim-info-panel li {
+    font-size: 0.9rem;
   }
 }
 
@@ -334,6 +339,23 @@ canvas {
 .sim-info-panel li {
   margin-bottom: 0.5rem;
   line-height: 1.4;
+}
+
+.sim-info-close {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  z-index: 101;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #666;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.sim-info-close:hover {
+  color: #000;
 }
 
 .controls {
