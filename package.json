@@ -18,10 +18,11 @@
   "homepage": "https://github.com/EarthmanMuons/spokanemesh-net#readme",
   "devDependencies": {
     "@eslint/js": "^9.25.1",
-    "eslint": "^9.25.1",
-    "globals": "^16.0.0",
-    "stylelint": "^16.19.1",
-    "stylelint-config-recess-order": "^6.0.0",
-    "stylelint-config-standard": "^38.0.0"
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "stylelint": "^16.26.1",
+    "stylelint-config-recess-order": "^7.4.0",
+    "stylelint-config-standard": "^39.0.1",
+    "stylelint-order": "^7.0.0"
   }
 }
